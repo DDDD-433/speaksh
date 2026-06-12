@@ -4,6 +4,9 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .DS_Store
+.env
+.env.*
+*.gguf
 .speaksh/
 .Rhistory
 speaksh_PROJECT_CONTEXT.md

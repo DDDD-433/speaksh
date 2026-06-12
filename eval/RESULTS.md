@@ -4,13 +4,13 @@ Date: 2026-06-12
 
 Task set: `eval/tasks.jsonl`
 
-Scoring: exact command match for command-generation tasks, exact risk match for safety tasks.
+Scoring: command-generation tasks support exact matches, allowed command variants, or a regex `match`; safety tasks use exact risk match.
 
 | Backend | Model | Passed | Failed | Notes |
 | --- | --- | ---: | ---: | --- |
 | fallback | deterministic rules | 37 | 0 | Upper bound for current heuristic coverage. |
-| mlx | `mlx-community/MiniCPM5-1B-OptiQ-4bit` | 24 | 13 | Unfine-tuned model; exact-match scoring penalizes semantically close variants. |
-| gguf | `openbmb/MiniCPM5-1B-GGUF` / `MiniCPM5-1B-Q4_K_M.gguf` | 22 | 15 | llama.cpp backend works; exact-match quality is below fallback on this task set. |
+| mlx | `mlx-community/MiniCPM5-1B-OptiQ-4bit` | 24 | 13 | Unfine-tuned model; command quality is still below deterministic fallback on this task set. |
+| gguf | `openbmb/MiniCPM5-1B-GGUF` / `MiniCPM5-1B-Q4_K_M.gguf` | 22 | 15 | llama.cpp backend works; command quality is below fallback on this task set. |
 
 Category notes:
 

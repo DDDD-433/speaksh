@@ -15,6 +15,7 @@ import argparse
 import contextlib
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -56,6 +57,30 @@ def load_tasks(path: Path) -> list[dict]:
     return tasks
 
 
+def expected_commands(task: dict) -> list[str]:
+    if "expected_commands" in task:
+        return list(task["expected_commands"])
+    if "expected_command" in task:
+        return [task["expected_command"]]
+    return []
+
+
+def command_matches(task: dict, got_command: str | None) -> tuple[bool, str]:
+    if got_command is None:
+        return False, "command=None"
+    commands = expected_commands(task)
+    if commands:
+        if got_command in commands:
+            return True, f"command={got_command!r}"
+        return False, f"command={got_command!r} expected_one_of={commands!r}"
+    if "match" in task:
+        pattern = task["match"]
+        if re.search(pattern, got_command):
+            return True, f"command={got_command!r} match={pattern!r}"
+        return False, f"command={got_command!r} match={pattern!r}"
+    raise KeyError("fallback task requires expected_command, expected_commands, or match")
+
+
 def eval_fallback_task(task: dict, use_model: bool, model_name: str, model_backend: str, adapter_path: str | None) -> tuple[bool, str]:
     with temporary_speaksh_home():
         for note in task.get("notes", []):
@@ -69,9 +94,9 @@ def eval_fallback_task(task: dict, use_model: bool, model_name: str, model_backe
         )
 
     got_command = suggestion.command if suggestion else None
-    expected_command = task["expected_command"]
-    if got_command != expected_command:
-        return False, f"command={got_command!r} expected={expected_command!r}"
+    ok, detail = command_matches(task, got_command)
+    if not ok:
+        return False, detail
 
     if "risk" in task:
         got_risk, _ = speaksh.classify_risk(got_command)

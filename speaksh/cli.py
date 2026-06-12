@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import sys
 from typing import Optional, Sequence
 
 from .config import DEFAULT_MODEL_BACKEND, DEFAULT_MODEL_NAME, effective_model_name
 from .history import record_history
-from .notes import add_note, load_notes, print_notes, search_notes
+from .notes import add_note, data_dir, load_notes, print_notes, search_notes
 from .runner import run_command
 from .safety import classify_risk
 from .suggestions import suggest_command
@@ -101,6 +102,40 @@ def interactive_loop(*, use_model: bool, model_name: str, model_backend: str, ad
         )
 
 
+def handle_doctor_command(argv: Sequence[str]) -> int:
+    parser = argparse.ArgumentParser(prog="speaksh doctor", description="Check the local speaksh environment.")
+    parser.add_argument("--model-backend", choices=("mlx", "transformers", "gguf"), default=DEFAULT_MODEL_BACKEND)
+    parser.add_argument("--model", default=DEFAULT_MODEL_NAME)
+    parser.add_argument("--adapter-path")
+    args = parser.parse_args(list(argv))
+
+    print("speaksh doctor")
+    print(f"python: {sys.version.split()[0]}")
+    print(f"state_dir: {data_dir()}")
+    print(f"model_backend: {args.model_backend}")
+    print(f"model: {effective_model_name(args.model, args.model_backend)}")
+    if args.adapter_path:
+        print(f"adapter_path: {args.adapter_path}")
+    specs = {
+        "mlx": "mlx_lm",
+        "transformers": "transformers",
+        "gguf": "llama_cpp",
+    }
+    module_name = specs[args.model_backend]
+    available = importlib.util.find_spec(module_name) is not None
+    print(f"{module_name}: {'available' if available else 'missing'}")
+    if args.adapter_path and args.model_backend != "mlx":
+        print("adapter_status: unsupported for this backend")
+        return 2
+    return 0
+
+
+def handle_eval_command(argv: Sequence[str]) -> int:
+    from scripts import eval as eval_script
+
+    return eval_script.main(list(argv))
+
+
 def build_main_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="speaksh",
@@ -152,6 +187,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if argv and argv[0] == "note":
         return handle_note_command(argv[1:])
+    if argv and argv[0] == "doctor":
+        return handle_doctor_command(argv[1:])
+    if argv and argv[0] == "eval":
+        return handle_eval_command(argv[1:])
 
     parser = build_main_parser()
     args = parser.parse_args(argv)

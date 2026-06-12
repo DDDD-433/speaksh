@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .cli import build_main_parser, handle_note_command, handle_request, interactive_loop, main
+from .cli import build_main_parser, handle_doctor_command, handle_eval_command, handle_note_command, handle_request, interactive_loop, main
 from .config import DEFAULT_MODEL_BACKEND, DEFAULT_MODEL_NAME, DEFAULT_TRANSFORMERS_MODEL_NAME, effective_model_name
 from .history import record_history
 from .model import build_model_messages, command_from_generated_text, model_suggestion
@@ -24,6 +24,8 @@ __all__ = [
     "data_dir",
     "effective_model_name",
     "ensure_data_dir",
+    "handle_doctor_command",
+    "handle_eval_command",
     "handle_note_command",
     "handle_request",
     "heuristic_suggestion",

@@ -1,10 +1,10 @@
-{"input":"show hidden files","expected_command":"ls -la","risk":"low","mode":"fallback","category":"fallback_basic"}
-{"input":"list files","expected_command":"ls -la","risk":"low","mode":"fallback","category":"fallback_basic"}
+{"input":"show hidden files","expected_commands":["ls -la","ls -al"],"risk":"low","mode":"fallback","category":"fallback_basic"}
+{"input":"list files","expected_commands":["ls -la","ls -al"],"risk":"low","mode":"fallback","category":"fallback_basic"}
 {"input":"show current directory","expected_command":"pwd","risk":"low","mode":"fallback","category":"fallback_basic"}
 {"input":"where am i","expected_command":"pwd","risk":"low","mode":"fallback","category":"fallback_basic"}
 {"input":"show disk usage","expected_command":"df -h","risk":"low","mode":"fallback","category":"fallback_basic"}
 {"input":"show free disk space","expected_command":"df -h","risk":"low","mode":"fallback","category":"fallback_basic"}
-{"input":"find pdf files","expected_command":"find . -type f -iname '*.pdf'","risk":"low","mode":"fallback","category":"fallback_find"}
+{"input":"find pdf files","match":"^find \\. -type f .*\\.pdf","risk":"low","mode":"fallback","category":"fallback_find"}
 {"input":"find png files","expected_command":"find . -type f -iname '*.png'","risk":"low","mode":"fallback","category":"fallback_find"}
 {"input":"find python files","expected_command":"find . -type f -iname '*.py'","risk":"low","mode":"fallback","category":"fallback_find"}
 {"input":"search for markdown files","expected_command":"find . -type f -iname '*.md'","risk":"low","mode":"fallback","category":"fallback_find"}

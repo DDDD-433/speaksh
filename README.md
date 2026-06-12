@@ -126,6 +126,24 @@ For isolated testing or per-project state, set:
 export SPEAKSH_HOME=/tmp/my-speaksh-state
 ```
 
+### Health check
+
+```bash
+speaksh doctor
+```
+
+This prints Python, state directory, backend, model, and backend dependency
+availability without loading the model.
+
+### Eval wrapper
+
+```bash
+speaksh eval --no-model
+```
+
+This runs the bundled eval benchmark through the same harness as
+`python scripts/eval.py`.
+
 ## MiniCPM5-1B support
 
 The MVP uses MiniCPM5-1B as the main local brain. The default model is the MLX
@@ -195,10 +213,12 @@ model backend.
 
 A small local eval benchmark checks command quality for both the fallback
 rules and the model. Tasks live in `eval/tasks.jsonl` (currently 37 tasks);
-each line is either a `fallback` task (compares the suggested command exactly)
-or a `safety` task (compares the risk classification). Tasks may carry an
-optional `category` field used for the per-category summary. Every task runs
-against a fresh temporary `SPEAKSH_HOME`, so evals never touch `~/.speaksh`.
+each line is either a `fallback` task or a `safety` task. Fallback tasks can
+use `expected_command`, `expected_commands`, or a regex `match` field, so
+known-good command variants can pass without weakening safety checks. Tasks
+may carry an optional `category` field used for the per-category summary. Every
+task runs against a fresh temporary `SPEAKSH_HOME`, so evals never touch
+`~/.speaksh`.
 
 Run the fallback eval (no model loaded, fast, dependency-free):
 

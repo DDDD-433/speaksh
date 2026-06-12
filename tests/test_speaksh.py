@@ -15,6 +15,7 @@ ROOT = PROJECT.parent
 
 import speaksh  # noqa: E402
 import speaksh.model as model_module  # noqa: E402
+from scripts import eval as eval_script  # noqa: E402
 from scripts import prepare_finetune_data as finetune_data  # noqa: E402
 
 
@@ -84,6 +85,19 @@ class SpeakshCLITests(unittest.TestCase):
             res = self.run_cli("--no-model", "--dry-run", "please do an undefined obscure thing", env={"SPEAKSH_HOME": td})
             self.assertEqual(res.returncode, 2)
             self.assertIn("No command suggestion available", res.stdout)
+
+    def test_doctor_command_reports_environment(self):
+        with tempfile.TemporaryDirectory() as td:
+            res = self.run_cli("doctor", env={"SPEAKSH_HOME": td})
+            self.assertEqual(res.returncode, 0, res.stderr + res.stdout)
+            self.assertIn("speaksh doctor", res.stdout)
+            self.assertIn("python:", res.stdout)
+            self.assertIn("state_dir:", res.stdout)
+
+    def test_eval_command_wraps_eval_harness(self):
+        res = self.run_cli("eval", "--no-model")
+        self.assertEqual(res.returncode, 0, res.stderr + res.stdout)
+        self.assertIn("total=37 passed=37 failed=0", res.stdout)
 
     def test_default_model_is_mlx_optiq(self):
         self.assertEqual(speaksh.DEFAULT_MODEL_NAME, "mlx-community/MiniCPM5-1B-OptiQ-4bit")
@@ -227,7 +241,10 @@ class SpeakshCLITests(unittest.TestCase):
             mode = task.get("mode", "fallback")
             self.assertIn("input", task, f"line {line_no}: missing input")
             if mode == "fallback":
-                self.assertIn("expected_command", task, f"line {line_no}: fallback task missing expected_command")
+                self.assertTrue(
+                    task.get("expected_command") or task.get("expected_commands") or task.get("match"),
+                    f"line {line_no}: fallback task missing expected_command/expected_commands/match",
+                )
             elif mode == "safety":
                 self.assertIn("expected_risk", task, f"line {line_no}: safety task missing expected_risk")
                 self.assertTrue(task.get("command") or task.get("input"), f"line {line_no}: safety task missing command")
@@ -274,6 +291,16 @@ class SpeakshCLITests(unittest.TestCase):
             )
             self.assertEqual(res.returncode, 1, res.stderr + res.stdout)
             self.assertIn("failed=1", res.stdout)
+
+    def test_eval_accepts_expected_command_variants(self):
+        task = {"input": "show hidden files", "expected_commands": ["ls -al", "ls -la"], "mode": "fallback"}
+        ok, detail = eval_script.eval_fallback_task(task, use_model=False, model_name=speaksh.DEFAULT_MODEL_NAME, model_backend="mlx", adapter_path=None)
+        self.assertTrue(ok, detail)
+
+    def test_eval_accepts_regex_match(self):
+        task = {"input": "find pdf files", "match": "^find \\. -type f .*\\.pdf", "mode": "fallback"}
+        ok, detail = eval_script.eval_fallback_task(task, use_model=False, model_name=speaksh.DEFAULT_MODEL_NAME, model_backend="mlx", adapter_path=None)
+        self.assertTrue(ok, detail)
 
     def test_safety_classifier(self):
         risk, reasons = speaksh.classify_risk("sudo rm -rf /")
