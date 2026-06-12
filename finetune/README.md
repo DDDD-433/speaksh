@@ -99,3 +99,30 @@ python scripts/eval.py \
 The 1-iteration smoke adapter proves the loading path works; it is not expected
 to improve command quality. Run a longer LoRA pass before treating adapter evals
 as meaningful.
+
+## Short LoRA runs
+
+Two short local runs were tested after the 1-iteration smoke:
+
+```text
+adapters/speaksh-public-v1-100
+  iters: 100
+  max_seq_length: 1024
+  final val loss: 1.169
+  test loss: 1.267
+  test ppl: 3.551
+  eval/tasks.jsonl: 25/37
+
+adapters/speaksh-public-v1-200
+  iters: 200
+  max_seq_length: 512
+  final val loss: 1.352
+  test loss: 1.249
+  test ppl: 3.486
+  eval/tasks.jsonl: 25/37
+```
+
+The lower test loss shows the model is learning the public NL-to-shell format.
+The task harness improves only slightly over the base MLX model, so the next
+training checkpoint should use more task-targeted examples instead of simply
+running longer.
