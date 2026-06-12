@@ -46,6 +46,15 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+## Development
+
+Run the same checks used by CI:
+
+```bash
+python -m unittest -v
+python scripts/eval.py --no-model
+```
+
 ## Usage
 
 ### One-shot mode

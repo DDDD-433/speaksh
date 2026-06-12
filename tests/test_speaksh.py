@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -186,12 +187,19 @@ class SpeakshCLITests(unittest.TestCase):
         sentinel_model = object()
         sentinel_tokenizer = object()
         with tempfile.TemporaryDirectory() as td:
-            with patch("mlx_lm.load", return_value=(sentinel_model, sentinel_tokenizer)) as load:
+            calls = []
+
+            def fake_load(*args, **kwargs):
+                calls.append((args, kwargs))
+                return sentinel_model, sentinel_tokenizer
+
+            fake_mlx_lm = types.SimpleNamespace(load=fake_load)
+            with patch.dict(sys.modules, {"mlx_lm": fake_mlx_lm}):
                 model, tokenizer = model_module.load_mlx_model(speaksh.DEFAULT_MODEL_NAME, adapter_path=td)
 
         self.assertIs(model, sentinel_model)
         self.assertIs(tokenizer, sentinel_tokenizer)
-        load.assert_called_once_with(speaksh.DEFAULT_MODEL_NAME, adapter_path=td)
+        self.assertEqual(calls, [((speaksh.DEFAULT_MODEL_NAME,), {"adapter_path": td})])
 
     def test_gguf_missing_dependency_or_path_falls_back(self):
         with tempfile.TemporaryDirectory() as td:
