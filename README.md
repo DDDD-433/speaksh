@@ -147,6 +147,15 @@ Override the model path if needed:
 speaksh --model mlx-community/MiniCPM5-1B-OptiQ-4bit "find pdf files"
 ```
 
+Run with a local MLX LoRA adapter:
+
+```bash
+speaksh --adapter-path adapters/smoke-5b --dry-run "find pdf files"
+```
+
+`--adapter-path` is supported only with the MLX backend. Adapter directories
+are local artifacts and are ignored by git.
+
 The older Transformers backend is still available for the unquantized base
 model:
 
@@ -261,8 +270,8 @@ Generated data is ignored by git and written under:
 data/processed/speaksh_public_v1/
 ```
 
-The MLX-LM training command is documented in `finetune/README.md`. Adapter
-loading in the `speaksh` CLI is a later checkpoint.
+The MLX-LM training and adapter smoke-test commands are documented in
+`finetune/README.md`.
 
 ## Tested flows
 

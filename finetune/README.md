@@ -82,4 +82,20 @@ Test loss: 6.841
 Test ppl: 935.430
 ```
 
-Adapter loading in the `speaksh` CLI is intentionally a later checkpoint.
+Run the CLI with a local adapter:
+
+```bash
+speaksh --adapter-path adapters/smoke-5b --dry-run "find pdf files"
+```
+
+Run the eval harness with a local adapter:
+
+```bash
+python scripts/eval.py \
+  --model-backend mlx \
+  --adapter-path adapters/smoke-5b
+```
+
+The 1-iteration smoke adapter proves the loading path works; it is not expected
+to improve command quality. Run a longer LoRA pass before treating adapter evals
+as meaningful.

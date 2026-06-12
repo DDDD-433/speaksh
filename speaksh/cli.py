@@ -18,12 +18,19 @@ def handle_request(
     use_model: bool,
     model_name: str,
     model_backend: str,
+    adapter_path: str | None,
     dry_run: bool,
     yes: bool,
     unsafe: bool,
     explain: bool,
 ) -> int:
-    suggestion = suggest_command(request, use_model=use_model, model_name=model_name, model_backend=model_backend)
+    suggestion = suggest_command(
+        request,
+        use_model=use_model,
+        model_name=model_name,
+        model_backend=model_backend,
+        adapter_path=adapter_path,
+    )
     if suggestion is None:
         print("No command suggestion available for that request in fallback mode.")
         print("Install/cache the local model, or run with --no-model and phrase it more specifically.")
@@ -56,7 +63,7 @@ def handle_request(
     return run_command(suggestion.command)
 
 
-def interactive_loop(*, use_model: bool, model_name: str, model_backend: str) -> int:
+def interactive_loop(*, use_model: bool, model_name: str, model_backend: str, adapter_path: str | None) -> int:
     print("speaksh interactive mode")
     print("Type a request, or: note add <text> | note list | note search <query> | exit")
     while True:
@@ -86,6 +93,7 @@ def interactive_loop(*, use_model: bool, model_name: str, model_backend: str) ->
             use_model=use_model,
             model_name=model_name,
             model_backend=model_backend,
+            adapter_path=adapter_path,
             dry_run=False,
             yes=False,
             unsafe=False,
@@ -107,6 +115,7 @@ def build_main_parser() -> argparse.ArgumentParser:
         default=DEFAULT_MODEL_BACKEND,
         help=f"Local inference backend. Default: {DEFAULT_MODEL_BACKEND}",
     )
+    parser.add_argument("--adapter-path", help="Optional local MLX LoRA adapter directory.")
     parser.add_argument("--dry-run", action="store_true", help="Print the suggested command but do not prompt or run it.")
     parser.add_argument("-y", "--yes", action="store_true", help="Run without asking for confirmation. Use carefully.")
     parser.add_argument("--unsafe", action="store_true", help="Allow dangerous commands that would otherwise be blocked.")
@@ -146,10 +155,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     parser = build_main_parser()
     args = parser.parse_args(argv)
+    if args.adapter_path and args.model_backend != "mlx" and not args.no_model:
+        parser.error("--adapter-path is only supported with --model-backend mlx")
     model_name = effective_model_name(args.model, args.model_backend)
 
     if not args.request:
-        return interactive_loop(use_model=not args.no_model, model_name=model_name, model_backend=args.model_backend)
+        return interactive_loop(
+            use_model=not args.no_model,
+            model_name=model_name,
+            model_backend=args.model_backend,
+            adapter_path=args.adapter_path,
+        )
 
     request = " ".join(args.request)
     return handle_request(
@@ -157,6 +173,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         use_model=not args.no_model,
         model_name=model_name,
         model_backend=args.model_backend,
+        adapter_path=args.adapter_path,
         dry_run=args.dry_run,
         yes=args.yes,
         unsafe=args.unsafe,

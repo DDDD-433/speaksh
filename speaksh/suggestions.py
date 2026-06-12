@@ -120,11 +120,12 @@ def suggest_command(
     use_model: bool = True,
     model_name: str = DEFAULT_MODEL_NAME,
     model_backend: str = DEFAULT_MODEL_BACKEND,
+    adapter_path: str | None = None,
 ) -> Optional[Suggestion]:
     notes = relevant_notes()
     if use_model:
         try:
-            return model_suggestion(request, notes, model_name, model_backend)
+            return model_suggestion(request, notes, model_name, model_backend, adapter_path)
         except Exception as exc:
             print(f"Warning: local model failed: {exc}", file=sys.stderr)
             print("Falling back to built-in rules.", file=sys.stderr)

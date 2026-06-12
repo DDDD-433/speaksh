@@ -56,7 +56,7 @@ def load_tasks(path: Path) -> list[dict]:
     return tasks
 
 
-def eval_fallback_task(task: dict, use_model: bool, model_name: str, model_backend: str) -> tuple[bool, str]:
+def eval_fallback_task(task: dict, use_model: bool, model_name: str, model_backend: str, adapter_path: str | None) -> tuple[bool, str]:
     with temporary_speaksh_home():
         for note in task.get("notes", []):
             speaksh.add_note(note)
@@ -65,6 +65,7 @@ def eval_fallback_task(task: dict, use_model: bool, model_name: str, model_backe
             use_model=use_model,
             model_name=model_name,
             model_backend=model_backend,
+            adapter_path=adapter_path,
         )
 
     got_command = suggestion.command if suggestion else None
@@ -99,8 +100,11 @@ def main(argv: list[str] | None = None) -> int:
         default=speaksh.DEFAULT_MODEL_BACKEND,
         help=f"Local inference backend. Default: {speaksh.DEFAULT_MODEL_BACKEND}",
     )
+    parser.add_argument("--adapter-path", help="Optional local MLX LoRA adapter directory.")
     parser.add_argument("--tasks", type=Path, default=DEFAULT_TASKS, help=f"Path to a JSONL task file. Default: {DEFAULT_TASKS}")
     args = parser.parse_args(argv)
+    if args.adapter_path and args.model_backend != "mlx" and not args.no_model:
+        parser.error("--adapter-path is only supported with --model-backend mlx")
 
     tasks = load_tasks(args.tasks)
     use_model = not args.no_model
@@ -114,7 +118,13 @@ def main(argv: list[str] | None = None) -> int:
         if mode == "safety":
             ok, detail = eval_safety_task(task)
         elif mode == "fallback":
-            ok, detail = eval_fallback_task(task, use_model=use_model, model_name=model_name, model_backend=args.model_backend)
+            ok, detail = eval_fallback_task(
+                task,
+                use_model=use_model,
+                model_name=model_name,
+                model_backend=args.model_backend,
+                adapter_path=args.adapter_path,
+            )
         else:
             ok, detail = False, f"unknown mode {mode!r}"
 

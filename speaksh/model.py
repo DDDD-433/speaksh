@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any, List, Sequence
+from typing import Any, List, Optional, Sequence
 
 from .config import DEFAULT_MODEL_BACKEND, DEFAULT_MODEL_NAME
 from .safety import classify_risk
@@ -84,19 +84,26 @@ def chat_prompt(tokenizer: Any, messages: Sequence[dict[str, str]]) -> str:
         )
 
 
-def load_mlx_model(model_name: str) -> tuple[Any, Any]:
-    """Load MiniCPM5-1B through mlx-lm."""
+def load_mlx_model(model_name: str, adapter_path: Optional[str] = None) -> tuple[Any, Any]:
+    """Load MiniCPM5-1B through mlx-lm, optionally with a LoRA adapter."""
     os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
     try:
         from mlx_lm import load  # type: ignore
     except Exception as exc:
         raise RuntimeError("mlx-lm is not installed. Install it with `pip install mlx-lm` or run with --no-model.") from exc
 
-    return load(model_name)
+    if adapter_path is None:
+        return load(model_name)
+    if not os.path.isdir(adapter_path):
+        raise RuntimeError(f"Adapter path not found: {adapter_path!r}. Pass --adapter-path pointing at an existing adapter directory.")
+    try:
+        return load(model_name, adapter_path=adapter_path)
+    except TypeError as exc:
+        raise RuntimeError("Installed mlx-lm does not support adapter_path. Upgrade with `pip install -U mlx-lm`.") from exc
 
 
-def mlx_model_suggestion(request: str, notes: Sequence[Note], model_name: str) -> Suggestion:
-    model, tokenizer = load_mlx_model(model_name)
+def mlx_model_suggestion(request: str, notes: Sequence[Note], model_name: str, adapter_path: Optional[str] = None) -> Suggestion:
+    model, tokenizer = load_mlx_model(model_name, adapter_path)
     messages = build_model_messages(request, notes)
     prompt = chat_prompt(tokenizer, messages)
 
@@ -197,9 +204,12 @@ def model_suggestion(
     notes: Sequence[Note],
     model_name: str = DEFAULT_MODEL_NAME,
     model_backend: str = DEFAULT_MODEL_BACKEND,
+    adapter_path: Optional[str] = None,
 ) -> Suggestion:
+    if adapter_path and model_backend != "mlx":
+        raise RuntimeError("--adapter-path is only supported with the MLX backend.")
     if model_backend == "mlx":
-        return mlx_model_suggestion(request, notes, model_name)
+        return mlx_model_suggestion(request, notes, model_name, adapter_path)
     if model_backend == "transformers":
         return transformers_model_suggestion(request, notes, model_name)
     if model_backend == "gguf":
