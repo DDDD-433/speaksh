@@ -1,0 +1,51 @@
+{
+  "preset": "public-curated-v1",
+  "seed": 42,
+  "max_per_utility": 750,
+  "sources": [
+    {
+      "id": "westenfelder/NL2SH-ALFA",
+      "enabled": true,
+      "license": "MIT",
+      "adapter": "nl_bash",
+      "dataset_config": "train",
+      "hf_split": "train",
+      "destination": "train",
+      "extra_loads": [
+        {
+          "dataset_config": "test",
+          "hf_split": "train",
+          "destination": "external_test"
+        }
+      ],
+      "notes": "Primary public NL-to-Bash dataset. Its manually verified test subset should be handled as external eval in a later adapter pass, not mixed into training."
+    },
+    {
+      "id": "emirkaanozdemr/bash_command_data_6K",
+      "enabled": true,
+      "license": "Apache-2.0",
+      "adapter": "prompt_completion",
+      "input_field": "prompt",
+      "command_field": "completion",
+      "hf_split": "train",
+      "destination": "train"
+    },
+    {
+      "id": "AryaYT/nl2shell-training-v3",
+      "enabled": true,
+      "license": "Apache-2.0",
+      "adapter": "nl_bash",
+      "hf_split": "train",
+      "destination": "train"
+    },
+    {
+      "id": "carosh/cli-1m",
+      "enabled": false,
+      "license": "Apache-2.0",
+      "adapter": "messages",
+      "hf_split": "train",
+      "destination": "train",
+      "notes": "Large multi-shell source. Disabled by default until shell/language sampling is tightened."
+    }
+  ]
+}

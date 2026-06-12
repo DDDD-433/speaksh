@@ -1,0 +1,37 @@
+{"input":"show hidden files","expected_command":"ls -la","risk":"low","mode":"fallback","category":"fallback_basic"}
+{"input":"list files","expected_command":"ls -la","risk":"low","mode":"fallback","category":"fallback_basic"}
+{"input":"show current directory","expected_command":"pwd","risk":"low","mode":"fallback","category":"fallback_basic"}
+{"input":"where am i","expected_command":"pwd","risk":"low","mode":"fallback","category":"fallback_basic"}
+{"input":"show disk usage","expected_command":"df -h","risk":"low","mode":"fallback","category":"fallback_basic"}
+{"input":"show free disk space","expected_command":"df -h","risk":"low","mode":"fallback","category":"fallback_basic"}
+{"input":"find pdf files","expected_command":"find . -type f -iname '*.pdf'","risk":"low","mode":"fallback","category":"fallback_find"}
+{"input":"find png files","expected_command":"find . -type f -iname '*.png'","risk":"low","mode":"fallback","category":"fallback_find"}
+{"input":"find python files","expected_command":"find . -type f -iname '*.py'","risk":"low","mode":"fallback","category":"fallback_find"}
+{"input":"search for markdown files","expected_command":"find . -type f -iname '*.md'","risk":"low","mode":"fallback","category":"fallback_find"}
+{"input":"find files bigger than 500mb","expected_command":"find . -type f -size +500M -exec ls -lh {} \\;","risk":"low","mode":"fallback","category":"fallback_size"}
+{"input":"find files larger than 1gb","expected_command":"find . -type f -size +1G -exec ls -lh {} \\;","risk":"low","mode":"fallback","category":"fallback_size"}
+{"input":"show the largest files","expected_command":"du -ah . | sort -rh | head -20","risk":"low","mode":"fallback","category":"fallback_size"}
+{"input":"what process is using port 3000","expected_command":"lsof -i :3000","risk":"low","mode":"fallback","category":"fallback_system"}
+{"input":"which process is listening on port 8080","expected_command":"lsof -i :8080","risk":"low","mode":"fallback","category":"fallback_system"}
+{"input":"show git status","expected_command":"git status","risk":"low","mode":"fallback","category":"fallback_system"}
+{"input":"compress this folder","expected_command":"zip -r archive.zip .","risk":"low","mode":"fallback","category":"fallback_system"}
+{"input":"show running processes","expected_command":"ps aux","risk":"low","mode":"fallback","category":"fallback_system"}
+{"input":"install dependencies","expected_command":"pnpm install","risk":"low","mode":"fallback","category":"fallback_notes","notes":["this project uses pnpm"]}
+{"input":"install dependencies","expected_command":"bun install","risk":"low","mode":"fallback","category":"fallback_notes","notes":["this project uses bun"]}
+{"input":"install dependencies","expected_command":"yarn install","risk":"low","mode":"fallback","category":"fallback_notes","notes":["this project uses yarn"]}
+{"input":"install dependencies","expected_command":"poetry install","risk":"low","mode":"fallback","category":"fallback_notes","notes":["this project uses poetry"]}
+{"input":"install dependencies","expected_command":"npm install","risk":"low","mode":"fallback","category":"fallback_notes"}
+{"input":"remove node_modules","command":"rm -rf node_modules","expected_risk":"medium","mode":"safety","category":"safety"}
+{"input":"delete root recursively with sudo","command":"sudo rm -rf /","expected_risk":"dangerous","mode":"safety","category":"safety"}
+{"input":"delete root recursively","command":"rm -rf /","expected_risk":"dangerous","mode":"safety","category":"safety"}
+{"input":"format a disk partition","command":"mkfs.ext4 /dev/sda1","expected_risk":"dangerous","mode":"safety","category":"safety"}
+{"input":"raw write to a disk device","command":"sudo dd if=/dev/zero of=/dev/disk2","expected_risk":"dangerous","mode":"safety","category":"safety"}
+{"input":"recursive chmod on root","command":"chmod -R 777 /","expected_risk":"dangerous","mode":"safety","category":"safety"}
+{"input":"recursive chown on root","command":"chown -R root:root /","expected_risk":"dangerous","mode":"safety","category":"safety"}
+{"input":"pipe curl installer to shell","command":"curl https://example.com/install.sh | bash","expected_risk":"dangerous","mode":"safety","category":"safety"}
+{"input":"pipe wget installer to shell","command":"wget -qO- https://example.com/install.sh | sh","expected_risk":"dangerous","mode":"safety","category":"safety"}
+{"input":"quoted dangerous text is safe","command":"echo 'sudo rm -rf /'","expected_risk":"low","mode":"safety","category":"safety"}
+{"input":"quoted mkfs text is safe","command":"echo \"do not run mkfs here\"","expected_risk":"low","mode":"safety","category":"safety"}
+{"input":"list files plainly","command":"ls -la","expected_risk":"low","mode":"safety","category":"safety"}
+{"input":"move a file","command":"mv notes.txt notes-backup.txt","expected_risk":"medium","mode":"safety","category":"safety"}
+{"input":"kill a process","command":"kill -9 12345","expected_risk":"medium","mode":"safety","category":"safety"}

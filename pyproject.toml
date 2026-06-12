@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speaksh"
+version = "0.1.0"
+description = "Local-first natural-language shell companion for Unix/Linux systems."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "speaksh contributors" }]
+dependencies = []
+
+[project.optional-dependencies]
+mlx = ["mlx-lm"]
+transformers = ["torch", "transformers"]
+gguf = ["llama-cpp-python"]
+train = ["datasets", "mlx-lm"]
+
+[project.scripts]
+speaksh = "speaksh.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["speaksh*"]
