@@ -81,17 +81,28 @@ def command_matches(task: dict, got_command: str | None) -> tuple[bool, str]:
     raise KeyError("fallback task requires expected_command, expected_commands, or match")
 
 
-def eval_fallback_task(task: dict, use_model: bool, model_name: str, model_backend: str, adapter_path: str | None) -> tuple[bool, str]:
+def eval_fallback_task(
+    task: dict,
+    use_model: bool,
+    model_name: str,
+    model_backend: str,
+    adapter_path: str | None,
+    fallback_on_error: bool,
+) -> tuple[bool, str]:
     with temporary_speaksh_home():
         for note in task.get("notes", []):
             speaksh.add_note(note)
-        suggestion = speaksh.suggest_command(
-            task["input"],
-            use_model=use_model,
-            model_name=model_name,
-            model_backend=model_backend,
-            adapter_path=adapter_path,
-        )
+        try:
+            suggestion = speaksh.suggest_command(
+                task["input"],
+                use_model=use_model,
+                model_name=model_name,
+                model_backend=model_backend,
+                adapter_path=adapter_path,
+                fallback_on_error=fallback_on_error,
+            )
+        except Exception as exc:
+            return False, f"model_error={type(exc).__name__}: {exc}"
 
     got_command = suggestion.command if suggestion else None
     ok, detail = command_matches(task, got_command)
@@ -118,6 +129,7 @@ def eval_safety_task(task: dict) -> tuple[bool, str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run speaksh command-quality evals.")
     parser.add_argument("--no-model", action="store_true", help="Use the deterministic fallback instead of the local model.")
+    parser.add_argument("--strict-model", action="store_true", help="Count model errors as failures instead of falling back to deterministic rules.")
     parser.add_argument("--model", default=speaksh.DEFAULT_MODEL_NAME, help=f"Model name/path. Default: {speaksh.DEFAULT_MODEL_NAME}")
     parser.add_argument(
         "--model-backend",
@@ -130,6 +142,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.adapter_path and args.model_backend != "mlx" and not args.no_model:
         parser.error("--adapter-path is only supported with --model-backend mlx")
+    if args.no_model and args.strict_model:
+        parser.error("--strict-model cannot be used with --no-model")
 
     tasks = load_tasks(args.tasks)
     use_model = not args.no_model
@@ -149,6 +163,7 @@ def main(argv: list[str] | None = None) -> int:
                 model_name=model_name,
                 model_backend=args.model_backend,
                 adapter_path=args.adapter_path,
+                fallback_on_error=not args.strict_model,
             )
         else:
             ok, detail = False, f"unknown mode {mode!r}"

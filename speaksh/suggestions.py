@@ -121,12 +121,15 @@ def suggest_command(
     model_name: str = DEFAULT_MODEL_NAME,
     model_backend: str = DEFAULT_MODEL_BACKEND,
     adapter_path: str | None = None,
+    fallback_on_error: bool = True,
 ) -> Optional[Suggestion]:
     notes = relevant_notes()
     if use_model:
         try:
             return model_suggestion(request, notes, model_name, model_backend, adapter_path)
         except Exception as exc:
+            if not fallback_on_error:
+                raise
             print(f"Warning: local model failed: {exc}", file=sys.stderr)
             print("Falling back to built-in rules.", file=sys.stderr)
     return heuristic_suggestion(request, notes)

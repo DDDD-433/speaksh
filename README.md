@@ -213,6 +213,13 @@ Run with an explicit local `.gguf` model path:
 speaksh --model-backend gguf --model /path/to/MiniCPM5-1B.Q4_K_M.gguf "find pdf files"
 ```
 
+Download the tested MiniCPM5-1B Q4 GGUF:
+
+```bash
+mkdir -p models/gguf
+hf download openbmb/MiniCPM5-1B-GGUF MiniCPM5-1B-Q4_K_M.gguf --local-dir models/gguf
+```
+
 The GGUF backend requires an explicit `--model` path to an existing local
 `.gguf` file; there is no default GGUF model. If `llama-cpp-python` is missing
 or the path is wrong, `speaksh` prints a warning and falls back to built-in
@@ -249,6 +256,7 @@ Optional backend/model flags work the same as the CLI:
 ```bash
 .venv/bin/python scripts/eval.py --model-backend mlx --model mlx-community/MiniCPM5-1B-OptiQ-4bit
 .venv/bin/python scripts/eval.py --model-backend gguf --model /path/to/model.gguf
+.venv/bin/python scripts/eval.py --strict-model --model-backend gguf --model /path/to/model.gguf --tasks eval/heldout_tasks.jsonl
 ```
 
 The script prints a per-task PASS/FAIL line, a `total/passed/failed` summary,
@@ -263,7 +271,8 @@ by_category:
 ```
 
 It exits non-zero if any task fails. Use `--tasks path/to/file.jsonl` to run a
-custom task file.
+custom task file. Use `--strict-model` when model-backed evals should count
+model errors as failures instead of falling back to deterministic rules.
 
 Current exact-match baselines are tracked in `eval/RESULTS.md`.
 

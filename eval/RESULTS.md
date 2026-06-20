@@ -16,9 +16,11 @@ Scoring: command-generation tasks support exact matches, allowed command variant
 | baseline | mlx+lora | `adapters/speaksh-public-v1-100` | 25 | 12 | 100-iteration public-data LoRA; test loss 1.267, test ppl 3.551. |
 | baseline | mlx+lora | `adapters/speaksh-public-v1-200` | 25 | 12 | 200-iteration public-data LoRA; test loss 1.249, test ppl 3.486. |
 | baseline | mlx+lora | `adapters/speaksh-weighted-prompt-v1-200` | 37 | 0 | Weighted task-targeted LoRA with matched prompt data and model-output canonicalization; test loss 0.241, test ppl 1.273. Raw score before canonicalization was 30/37. |
-| baseline | gguf | `openbmb/MiniCPM5-1B-GGUF` / `MiniCPM5-1B-Q4_K_M.gguf` | 22 | 15 | llama.cpp backend works; command quality is below fallback on this task set. |
+| baseline | gguf | `openbmb/MiniCPM5-1B-GGUF` / `MiniCPM5-1B-Q4_K_M.gguf` | 22 | 15 | Early llama.cpp run before prompt/canonicalization improvements. |
+| baseline | gguf strict | `openbmb/MiniCPM5-1B-GGUF` / `MiniCPM5-1B-Q4_K_M.gguf` | 37 | 0 | Cross-platform Q4 GGUF path with model errors counted as failures. SHA256: `81b64d05a23b17b34c475f42b3e72fbde62d4b92cc34541f7a8031d0752deafa`. |
 | heldout | fallback | deterministic rules | 40 | 0 | Broader paraphrase coverage for the same supported command families. |
 | heldout | mlx+lora | `adapters/speaksh-weighted-prompt-v1-200` | 40 | 0 | Same adapter and model-output canonicalization on held-out paraphrases. |
+| heldout | gguf strict | `openbmb/MiniCPM5-1B-GGUF` / `MiniCPM5-1B-Q4_K_M.gguf` | 40 | 0 | Cross-platform Q4 GGUF path with model errors counted as failures. |
 
 Category notes:
 
@@ -26,4 +28,5 @@ Category notes:
 - Earlier model failures clustered around note-aware package managers, size queries, ports, and command variants such as `ls` vs `ls -la`.
 - The weighted prompt-matched run gives the model much stronger behavior on the current task set.
 - Model-output canonicalization is intentionally narrow: it cleans common safe near-misses such as `find . -name '*.png'` into the project style `find . -type f -iname '*.png'`.
+- GGUF evals use `--strict-model`, so model backend errors count as failures instead of being hidden by deterministic fallback.
 - The next eval step should add external public rows or generated challenge prompts so the benchmark goes beyond hand-authored command families.

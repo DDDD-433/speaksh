@@ -137,6 +137,11 @@ class SpeakshCLITests(unittest.TestCase):
         self.assertEqual(suggestion.source, "heuristic")
         model_suggestion.assert_not_called()
 
+    def test_strict_model_error_does_not_fallback(self):
+        with patch("speaksh.suggestions.model_suggestion", side_effect=RuntimeError("boom")):
+            with self.assertRaises(RuntimeError):
+                speaksh.suggest_command("show hidden files", fallback_on_error=False)
+
     def test_transformers_backend_uses_base_model_default(self):
         args = speaksh.build_main_parser().parse_args(["--model-backend", "transformers", "find pdf files"])
         self.assertEqual(speaksh.effective_model_name(args.model, args.model_backend), "openbmb/MiniCPM5-1B")
@@ -245,6 +250,7 @@ class SpeakshCLITests(unittest.TestCase):
             ("list files", "ls", [], "ls -la"),
             ("show dotfiles in this directory", "find . -name '*.dot'", [], "ls -la"),
             ("where am i", "whoami", [], "pwd"),
+            ("print the working directory", "show working directory", [], "pwd"),
             ("show free disk space", "du -ah /", [], "df -h"),
             ("locate pdf documents here", "locate pdf", [], "find . -type f -iname '*.pdf'"),
             ("find png files", "find . -name '*.png'", [], "find . -type f -iname '*.png'"),
@@ -253,6 +259,7 @@ class SpeakshCLITests(unittest.TestCase):
             ("show largest items in this directory", "du -ah .", [], "du -ah . | sort -rh | head -20"),
             ("compress this folder", "zip -r archive.zip", [], "zip -r archive.zip ."),
             ("install dependencies", "pnpm install", [], "npm install"),
+            ("install dependencies for this project", "", [], "npm install"),
             (
                 "install dependencies",
                 "npm install",
@@ -334,12 +341,26 @@ class SpeakshCLITests(unittest.TestCase):
 
     def test_eval_accepts_expected_command_variants(self):
         task = {"input": "show hidden files", "expected_commands": ["ls -al", "ls -la"], "mode": "fallback"}
-        ok, detail = eval_script.eval_fallback_task(task, use_model=False, model_name=speaksh.DEFAULT_MODEL_NAME, model_backend="mlx", adapter_path=None)
+        ok, detail = eval_script.eval_fallback_task(
+            task,
+            use_model=False,
+            model_name=speaksh.DEFAULT_MODEL_NAME,
+            model_backend="mlx",
+            adapter_path=None,
+            fallback_on_error=True,
+        )
         self.assertTrue(ok, detail)
 
     def test_eval_accepts_regex_match(self):
         task = {"input": "find pdf files", "match": "^find \\. -type f .*\\.pdf", "mode": "fallback"}
-        ok, detail = eval_script.eval_fallback_task(task, use_model=False, model_name=speaksh.DEFAULT_MODEL_NAME, model_backend="mlx", adapter_path=None)
+        ok, detail = eval_script.eval_fallback_task(
+            task,
+            use_model=False,
+            model_name=speaksh.DEFAULT_MODEL_NAME,
+            model_backend="mlx",
+            adapter_path=None,
+            fallback_on_error=True,
+        )
         self.assertTrue(ok, detail)
 
     def test_safety_classifier(self):
