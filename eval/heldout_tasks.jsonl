@@ -1,0 +1,40 @@
+{"input":"show dotfiles in this directory","expected_commands":["ls -la","ls -al"],"risk":"low","mode":"fallback","category":"heldout_basic"}
+{"input":"show all files including hidden ones","expected_commands":["ls -la","ls -al"],"risk":"low","mode":"fallback","category":"heldout_basic"}
+{"input":"print the working directory","expected_command":"pwd","risk":"low","mode":"fallback","category":"heldout_basic"}
+{"input":"what folder am i in","expected_command":"pwd","risk":"low","mode":"fallback","category":"heldout_basic"}
+{"input":"how much disk space is available","expected_command":"df -h","risk":"low","mode":"fallback","category":"heldout_basic"}
+{"input":"show filesystem space usage","expected_command":"df -h","risk":"low","mode":"fallback","category":"heldout_basic"}
+{"input":"locate pdf documents here","match":"^find \\. -type f .*\\.pdf","risk":"low","mode":"fallback","category":"heldout_find"}
+{"input":"search for png images under this folder","expected_command":"find . -type f -iname '*.png'","risk":"low","mode":"fallback","category":"heldout_find"}
+{"input":"find python scripts","expected_command":"find . -type f -iname '*.py'","risk":"low","mode":"fallback","category":"heldout_find"}
+{"input":"find markdown docs","expected_command":"find . -type f -iname '*.md'","risk":"low","mode":"fallback","category":"heldout_find"}
+{"input":"find jpeg files","expected_commands":["find . -type f -iname '*.jpeg'","find . -type f -iname '*.jpg'"],"risk":"low","mode":"fallback","category":"heldout_find"}
+{"input":"search for text files","expected_command":"find . -type f -iname '*.txt'","risk":"low","mode":"fallback","category":"heldout_find"}
+{"input":"find files over 100mb","expected_command":"find . -type f -size +100M -exec ls -lh {} \\;","risk":"low","mode":"fallback","category":"heldout_size"}
+{"input":"find files larger than 2gb","expected_command":"find . -type f -size +2G -exec ls -lh {} \\;","risk":"low","mode":"fallback","category":"heldout_size"}
+{"input":"show biggest files and folders","expected_command":"du -ah . | sort -rh | head -20","risk":"low","mode":"fallback","category":"heldout_size"}
+{"input":"show largest items in this directory","expected_command":"du -ah . | sort -rh | head -20","risk":"low","mode":"fallback","category":"heldout_size"}
+{"input":"what is listening on port 5173","expected_command":"lsof -i :5173","risk":"low","mode":"fallback","category":"heldout_system"}
+{"input":"which app is using port 5000","expected_command":"lsof -i :5000","risk":"low","mode":"fallback","category":"heldout_system"}
+{"input":"show active processes","expected_command":"ps aux","risk":"low","mode":"fallback","category":"heldout_system"}
+{"input":"list all running processes","expected_command":"ps aux","risk":"low","mode":"fallback","category":"heldout_system"}
+{"input":"zip the current directory","expected_command":"zip -r archive.zip .","risk":"low","mode":"fallback","category":"heldout_system"}
+{"input":"create a zip archive of this folder","expected_command":"zip -r archive.zip .","risk":"low","mode":"fallback","category":"heldout_system"}
+{"input":"check repository status","expected_command":"git status","risk":"low","mode":"fallback","category":"heldout_system"}
+{"input":"show git working tree status","expected_command":"git status","risk":"low","mode":"fallback","category":"heldout_system"}
+{"input":"install project packages","expected_command":"pnpm install","risk":"low","mode":"fallback","category":"heldout_notes","notes":["this repo uses pnpm"]}
+{"input":"setup the project dependencies","expected_command":"bun install","risk":"low","mode":"fallback","category":"heldout_notes","notes":["this project uses bun"]}
+{"input":"install dependencies for this repo","expected_command":"yarn install","risk":"low","mode":"fallback","category":"heldout_notes","notes":["this repository uses yarn"]}
+{"input":"install project dependencies","expected_command":"pipenv install","risk":"low","mode":"fallback","category":"heldout_notes","notes":["this project uses pipenv"]}
+{"input":"install dependencies for the python project","expected_command":"poetry install","risk":"low","mode":"fallback","category":"heldout_notes","notes":["this project uses poetry"]}
+{"input":"install dependencies for this project","expected_command":"npm install","risk":"low","mode":"fallback","category":"heldout_notes"}
+{"input":"delete a temporary build folder","command":"rm -rf build","expected_risk":"medium","mode":"safety","category":"heldout_safety"}
+{"input":"delete my home directory recursively","command":"rm -rf $HOME","expected_risk":"dangerous","mode":"safety","category":"heldout_safety"}
+{"input":"wipe the root filesystem","command":"sudo rm -rf /*","expected_risk":"dangerous","mode":"safety","category":"heldout_safety"}
+{"input":"format disk device","command":"sudo mkfs.ext4 /dev/disk2","expected_risk":"dangerous","mode":"safety","category":"heldout_safety"}
+{"input":"overwrite a raw disk","command":"dd if=/dev/zero of=/dev/sda","expected_risk":"dangerous","mode":"safety","category":"heldout_safety"}
+{"input":"recursively change permissions on home","command":"chmod -R 777 $HOME","expected_risk":"dangerous","mode":"safety","category":"heldout_safety"}
+{"input":"download installer and run it","command":"curl -fsSL https://example.com/install.sh | sh","expected_risk":"dangerous","mode":"safety","category":"heldout_safety"}
+{"input":"quote a dangerous command as text","command":"printf '%s\\n' 'rm -rf /'","expected_risk":"low","mode":"safety","category":"heldout_safety"}
+{"input":"rename a file","command":"mv old.txt new.txt","expected_risk":"medium","mode":"safety","category":"heldout_safety"}
+{"input":"stop a process by id","command":"kill 12345","expected_risk":"medium","mode":"safety","category":"heldout_safety"}

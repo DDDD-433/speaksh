@@ -34,10 +34,14 @@ def _requested_extension(text: str) -> str | None:
     extensions = {
         "pdf": "pdf",
         "png": "png",
+        "jpg": "jpg",
+        "jpeg": "jpeg",
         "python": "py",
         "py": "py",
         "markdown": "md",
         "md": "md",
+        "text": "txt",
+        "txt": "txt",
     }
     for word, ext in extensions.items():
         if re.search(rf"\b{re.escape(word)}\b", text):
@@ -55,18 +59,22 @@ def canonicalize_model_command(request: str, command: str, notes: Sequence[Note]
     stripped = command.strip()
     notes_text = _notes_text(notes)
 
-    if any(phrase in t for phrase in ("show hidden", "list hidden", "hidden files", "list files", "show files")):
-        if stripped == "ls" or stripped.startswith(("ls -la ", "ls -la|", "ls -la |")):
+    if any(phrase in t for phrase in ("compress this folder", "compress current directory", "zip this folder", "zip the current directory", "make a zip", "create a zip archive")):
+        if stripped in {"zip -r archive.zip", "zip -r archive.zip ./"} or stripped.startswith("tar ") or "zip" in stripped:
+            return "zip -r archive.zip ."
+
+    if any(word in t for word in ("disk", "filesystem")) and any(word in t for word in ("usage", "space", "free", "available")):
+        return "df -h"
+
+    if any(phrase in t for phrase in ("show hidden", "list hidden", "hidden files", "dotfiles", "including hidden", "list files", "show files")):
+        if "dotfiles" in t or stripped == "ls" or stripped.startswith(("ls -la ", "ls -la|", "ls -la |")):
             return "ls -la"
 
-    if any(phrase in t for phrase in ("current directory", "where am i", "working directory", "pwd")):
+    if any(phrase in t for phrase in ("current directory", "where am i", "what folder am i in", "working directory", "pwd")):
         if stripped in {"whoami", "echo $PWD"} or "pwd" in stripped:
             return "pwd"
 
-    if "disk" in t and any(word in t for word in ("usage", "space", "free")):
-        return "df -h"
-
-    if ("find" in t or "search" in t or "locate" in t) and "files" in t:
+    if any(word in t for word in ("find", "search", "locate")) and any(word in t for word in ("files", "documents", "images", "scripts", "docs")):
         ext = _requested_extension(t)
         if ext:
             return f"find . -type f -iname '*.{ext}'"
@@ -77,7 +85,7 @@ def canonicalize_model_command(request: str, command: str, notes: Sequence[Note]
             unit = size_match.group(2).lower()[0].upper()
             return f"find . -type f -size +{size_match.group(1)}{unit} -exec ls -lh {{}} \\;"
 
-    if "largest files" in t or "biggest files" in t:
+    if "largest files" in t or "biggest files" in t or "largest items" in t or "biggest items" in t:
         return "du -ah . | sort -rh | head -20"
 
     if "port" in t and any(word in t for word in ("using", "listening", "open", "process")):
@@ -86,15 +94,11 @@ def canonicalize_model_command(request: str, command: str, notes: Sequence[Note]
             port = port_match.group(1) or port_match.group(2)
             return f"lsof -i :{port}"
 
-    if any(phrase in t for phrase in ("compress this folder", "zip this folder", "make a zip")):
-        if stripped in {"zip -r archive.zip", "zip -r archive.zip ./"} or stripped.startswith("tar "):
-            return "zip -r archive.zip ."
-
-    if any(phrase in t for phrase in ("show processes", "list processes", "running processes")):
+    if any(phrase in t for phrase in ("show processes", "list processes", "running processes", "active processes")):
         if stripped in {"ps", "ps -aux"}:
             return "ps aux"
 
-    if any(phrase in t for phrase in ("install dependencies", "install deps", "install packages", "setup dependencies")):
+    if any(phrase in t for phrase in ("install dependencies", "install deps", "install packages", "install project packages", "install project dependencies", "setup dependencies", "setup the project dependencies")):
         if "pnpm" in notes_text:
             return "pnpm install"
         if "bun" in notes_text:
@@ -106,6 +110,9 @@ def canonicalize_model_command(request: str, command: str, notes: Sequence[Note]
         if "poetry" in notes_text:
             return "poetry install"
         return "npm install"
+
+    if any(phrase in t for phrase in ("git status", "status of git", "repo status", "repository status", "working tree status")):
+        return "git status"
 
     return stripped
 
@@ -124,6 +131,7 @@ def build_model_messages(request: str, notes: Sequence[Note]) -> List[dict[str, 
         "- Size example: find files bigger than 500mb -> find . -type f -size +500M -exec ls -lh {} \\;.\n"
         "- Largest-files example: show the largest files -> du -ah . | sort -rh | head -20.\n"
         "- System examples: what process is using port 3000 -> lsof -i :3000; show running processes -> ps aux; compress this folder -> zip -r archive.zip .\n"
+        "- Repository example: show git working tree status -> git status.\n"
         "- If a note names a tool, prefer it. Example: with note 'this project uses pnpm', install dependencies -> pnpm install.\n"
         "- Use these project notes when relevant:\n"
         f"{notes_block}"
@@ -156,6 +164,7 @@ def build_gguf_prompt(request: str, notes: Sequence[Note]) -> str:
         "what process is using port 3000 => lsof -i :3000\n"
         "show running processes => ps aux\n"
         "compress this folder => zip -r archive.zip .\n"
+        "show git working tree status => git status\n"
         "show disk usage => df -h\n"
         "Notes:\n"
         f"{notes_block}\n\n"

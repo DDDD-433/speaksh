@@ -243,10 +243,14 @@ class SpeakshCLITests(unittest.TestCase):
     def test_model_command_canonicalizer_cleans_common_near_misses(self):
         cases = [
             ("list files", "ls", [], "ls -la"),
+            ("show dotfiles in this directory", "find . -name '*.dot'", [], "ls -la"),
             ("where am i", "whoami", [], "pwd"),
             ("show free disk space", "du -ah /", [], "df -h"),
+            ("locate pdf documents here", "locate pdf", [], "find . -type f -iname '*.pdf'"),
             ("find png files", "find . -name '*.png'", [], "find . -type f -iname '*.png'"),
+            ("find markdown docs", "find . -name '*.md' -print", [], "find . -type f -iname '*.md'"),
             ("find files larger than 1gb", "find . -type f -size +1G", [], "find . -type f -size +1G -exec ls -lh {} \\;"),
+            ("show largest items in this directory", "du -ah .", [], "du -ah . | sort -rh | head -20"),
             ("compress this folder", "zip -r archive.zip", [], "zip -r archive.zip ."),
             ("install dependencies", "pnpm install", [], "npm install"),
             (
@@ -262,23 +266,30 @@ class SpeakshCLITests(unittest.TestCase):
                 self.assertEqual(model_module.canonicalize_model_command(request, command, notes), expected)
 
     def test_eval_tasks_jsonl_parses_with_required_fields(self):
-        tasks_path = ROOT / "eval" / "tasks.jsonl"
-        lines = [line for line in tasks_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-        self.assertGreaterEqual(len(lines), 25)
-        for line_no, line in enumerate(lines, start=1):
-            task = json.loads(line)  # raises on invalid JSON
-            mode = task.get("mode", "fallback")
-            self.assertIn("input", task, f"line {line_no}: missing input")
-            if mode == "fallback":
-                self.assertTrue(
-                    task.get("expected_command") or task.get("expected_commands") or task.get("match"),
-                    f"line {line_no}: fallback task missing expected_command/expected_commands/match",
-                )
-            elif mode == "safety":
-                self.assertIn("expected_risk", task, f"line {line_no}: safety task missing expected_risk")
-                self.assertTrue(task.get("command") or task.get("input"), f"line {line_no}: safety task missing command")
-            else:
-                self.fail(f"line {line_no}: unknown mode {mode!r}")
+        task_paths = sorted((ROOT / "eval").glob("*tasks.jsonl"))
+        self.assertGreaterEqual(len(task_paths), 2)
+        total_lines = 0
+        for tasks_path in task_paths:
+            lines = [line for line in tasks_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            self.assertGreaterEqual(len(lines), 10, f"{tasks_path}: too few tasks")
+            total_lines += len(lines)
+            for line_no, line in enumerate(lines, start=1):
+                task = json.loads(line)  # raises on invalid JSON
+                mode = task.get("mode", "fallback")
+                location = f"{tasks_path.name}:{line_no}"
+                self.assertIn("input", task, f"{location}: missing input")
+                self.assertIn("category", task, f"{location}: missing category")
+                if mode == "fallback":
+                    self.assertTrue(
+                        task.get("expected_command") or task.get("expected_commands") or task.get("match"),
+                        f"{location}: fallback task missing expected_command/expected_commands/match",
+                    )
+                elif mode == "safety":
+                    self.assertIn("expected_risk", task, f"{location}: safety task missing expected_risk")
+                    self.assertTrue(task.get("command") or task.get("input"), f"{location}: safety task missing command")
+                else:
+                    self.fail(f"{location}: unknown mode {mode!r}")
+        self.assertGreaterEqual(total_lines, 70)
 
     def test_eval_harness_no_model_passes(self):
         res = subprocess.run(

@@ -53,6 +53,7 @@ Run the same checks used by CI:
 ```bash
 python -m unittest -v
 python scripts/eval.py --no-model
+python scripts/eval.py --no-model --tasks eval/heldout_tasks.jsonl
 ```
 
 ## Usage
@@ -220,25 +221,27 @@ model backend.
 
 ## Eval benchmark
 
-A small local eval benchmark checks command quality for both the fallback
-rules and the model. Tasks live in `eval/tasks.jsonl` (currently 37 tasks);
-each line is either a `fallback` task or a `safety` task. Fallback tasks can
-use `expected_command`, `expected_commands`, or a regex `match` field, so
-known-good command variants can pass without weakening safety checks. Tasks
-may carry an optional `category` field used for the per-category summary. Every
-task runs against a fresh temporary `SPEAKSH_HOME`, so evals never touch
-`~/.speaksh`.
+Small local eval benchmarks check command quality for both the fallback rules
+and the model. The baseline suite lives in `eval/tasks.jsonl`; the broader
+paraphrase suite lives in `eval/heldout_tasks.jsonl`. Each line is either a
+`fallback` task or a `safety` task. Fallback tasks can use `expected_command`,
+`expected_commands`, or a regex `match` field, so known-good command variants
+can pass without weakening safety checks. Tasks may carry an optional
+`category` field used for the per-category summary. Every task runs against a
+fresh temporary `SPEAKSH_HOME`, so evals never touch `~/.speaksh`.
 
 Run the fallback eval (no model loaded, fast, dependency-free):
 
 ```bash
 python scripts/eval.py --no-model
+python scripts/eval.py --no-model --tasks eval/heldout_tasks.jsonl
 ```
 
 Run the model-backed eval (requires `mlx-lm` and the cached model):
 
 ```bash
 .venv/bin/python scripts/eval.py
+.venv/bin/python scripts/eval.py --tasks eval/heldout_tasks.jsonl
 ```
 
 Optional backend/model flags work the same as the CLI:

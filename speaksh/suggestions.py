@@ -70,16 +70,19 @@ def heuristic_suggestion(request: str, notes: Sequence[Note]) -> Optional[Sugges
     command: Optional[str] = None
     explanation = "Generated using built-in fallback rules."
 
-    if any(phrase in t for phrase in ["show hidden", "list hidden", "hidden files", "list files", "show files"]):
-        command = "ls -la"
-        explanation = "Lists files in the current directory, including hidden files."
-    elif any(phrase in t for phrase in ["current directory", "where am i", "working directory", "pwd"]):
-        command = "pwd"
-        explanation = "Prints the current working directory."
-    elif "disk" in t and any(word in t for word in ["usage", "space", "free"]):
+    if any(phrase in t for phrase in ["compress this folder", "compress current directory", "zip this folder", "zip the current directory", "make a zip", "create a zip archive"]):
+        command = "zip -r archive.zip ."
+        explanation = "Creates archive.zip from the current directory."
+    elif any(word in t for word in ["disk", "filesystem"]) and any(word in t for word in ["usage", "space", "free", "available"]):
         command = "df -h"
         explanation = "Shows disk space usage in human-readable units."
-    elif any(word in t for word in ["biggest", "largest", "large files", "bigger than", "larger than"]):
+    elif any(phrase in t for phrase in ["show hidden", "list hidden", "hidden files", "dotfiles", "including hidden", "list files", "show files"]):
+        command = "ls -la"
+        explanation = "Lists files in the current directory, including hidden files."
+    elif any(phrase in t for phrase in ["current directory", "where am i", "what folder am i in", "working directory", "pwd"]):
+        command = "pwd"
+        explanation = "Prints the current working directory."
+    elif any(word in t for word in ["biggest", "largest", "large files", "bigger than", "larger than", "over"]):
         size = extract_size(t)
         if "bigger than" in t or "larger than" in t or "over" in t:
             command = f"find . -type f -size +{size} -exec ls -lh {{}} \\;"
@@ -96,16 +99,13 @@ def heuristic_suggestion(request: str, notes: Sequence[Note]) -> Optional[Sugges
         port = extract_port(t) or "3000"
         command = f"lsof -i :{port}"
         explanation = f"Shows processes using port {port}."
-    elif any(phrase in t for phrase in ["install dependencies", "install deps", "install packages", "setup dependencies"]):
+    elif any(phrase in t for phrase in ["install dependencies", "install deps", "install packages", "install project packages", "install project dependencies", "setup dependencies", "setup the project dependencies"]):
         command = note_aware_install_command(notes)
         explanation = "Installs project dependencies using the package manager inferred from notes."
-    elif any(phrase in t for phrase in ["git status", "status of git", "repo status"]):
+    elif any(phrase in t for phrase in ["git status", "status of git", "repo status", "repository status", "working tree status"]):
         command = "git status"
         explanation = "Shows Git working tree status."
-    elif any(phrase in t for phrase in ["compress this folder", "zip this folder", "make a zip"]):
-        command = "zip -r archive.zip ."
-        explanation = "Creates archive.zip from the current directory."
-    elif any(phrase in t for phrase in ["show processes", "list processes", "running processes"]):
+    elif any(phrase in t for phrase in ["show processes", "list processes", "running processes", "active processes"]):
         command = "ps aux"
         explanation = "Lists running processes."
 
