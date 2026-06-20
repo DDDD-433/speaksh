@@ -10,12 +10,15 @@ from .safety import classify_risk, strip_quoted_text
 from .suggestions import heuristic_suggestion, suggest_command
 from .types import Note, Suggestion
 
+__version__ = "0.1.0"
+
 __all__ = [
     "DEFAULT_MODEL_BACKEND",
     "DEFAULT_MODEL_NAME",
     "DEFAULT_TRANSFORMERS_MODEL_NAME",
     "Note",
     "Suggestion",
+    "__version__",
     "add_note",
     "build_main_parser",
     "build_model_messages",

@@ -39,11 +39,27 @@ python3 --version
 
 Python 3.10+ is enough for fallback mode.
 
-Model dependency for Apple Silicon / MLX:
+Lightweight install:
 
 ```bash
-pip install -r requirements.txt
-pip install -e .
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+python -m pip install -e .
+```
+
+Apple Silicon / MLX model install:
+
+```bash
+python -m pip install -e '.[mlx]'
+```
+
+Check the install:
+
+```bash
+speaksh --version
+speaksh doctor
+speaksh --no-model --dry-run "show hidden files"
 ```
 
 ## Development

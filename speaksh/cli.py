@@ -141,6 +141,7 @@ def build_main_parser() -> argparse.ArgumentParser:
         prog="speaksh",
         description="Local-first natural-language shell companion for Unix/Linux systems.",
     )
+    parser.add_argument("--version", action="version", version="speaksh 0.1.0")
     parser.add_argument("--use-model", action="store_true", help="Use the local model backend. This is the default; kept for explicitness.")
     parser.add_argument("--no-model", action="store_true", help="Skip model loading and use deterministic fallback rules only.")
     parser.add_argument("--model", default=DEFAULT_MODEL_NAME, help=f"Model name/path. Default: {DEFAULT_MODEL_NAME}")

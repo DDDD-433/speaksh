@@ -19,3 +19,7 @@ jobs:
         run: python -m unittest -v
       - name: Run fallback eval
         run: python scripts/eval.py --no-model
+      - name: Run heldout eval
+        run: python scripts/eval.py --no-model --tasks eval/heldout_tasks.jsonl
+      - name: Run external public eval
+        run: python scripts/eval.py --no-model --tasks eval/external_public_tasks.jsonl
