@@ -14,9 +14,14 @@ Enabled sources are permissive public datasets only:
 - `westenfelder/NL2SH-ALFA` - MIT
 - `emirkaanozdemr/bash_command_data_6K` - Apache-2.0
 - `AryaYT/nl2shell-training-v3` - Apache-2.0
+- `speaksh/curated-task-targeted-v1` - MIT local curated rows for known weak eval areas
 
 `carosh/cli-1m` is recorded but disabled by default because it is much broader
 than the first speaksh fine-tuning target.
+
+The local curated rows cover note-aware package manager selection, size
+queries, port/process lookups, and compression commands. Rows may include
+project notes so the MLX-LM training messages match the CLI prompt shape.
 
 Generate local MLX-LM training files:
 
@@ -35,4 +40,3 @@ The generated files land under:
 ```text
 data/processed/speaksh_public_v1/
 ```
-

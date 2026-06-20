@@ -123,6 +123,8 @@ adapters/speaksh-public-v1-200
 ```
 
 The lower test loss shows the model is learning the public NL-to-shell format.
-The task harness improves only slightly over the base MLX model, so the next
-training checkpoint should use more task-targeted examples instead of simply
-running longer.
+The task harness improves only slightly over the base MLX model. The current
+data pipeline now includes a small task-targeted source for note-aware package
+manager selection, size queries, port/process lookups, and compression commands;
+the next adapter run should regenerate the data and train against that updated
+mix.

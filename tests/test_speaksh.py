@@ -340,6 +340,7 @@ class FineTuneDataTests(unittest.TestCase):
                 "westenfelder/NL2SH-ALFA",
                 "emirkaanozdemr/bash_command_data_6K",
                 "AryaYT/nl2shell-training-v3",
+                "speaksh/curated-task-targeted-v1",
             ],
         )
         self.assertIn("carosh/cli-1m", disabled)
@@ -507,6 +508,37 @@ class FineTuneDataTests(unittest.TestCase):
 
             self.assertEqual([record["command"] for record in splits["external_test"]], ["pwd"])
             self.assertEqual(splits["external_test"][0]["split"], "external_test")
+
+    def test_normalize_records_preserves_notes(self):
+        source = {
+            "id": "fixture/source",
+            "license": "MIT",
+            "adapter": "prompt_completion",
+            "input_field": "prompt",
+            "command_field": "completion",
+        }
+        rows = [
+            {
+                "prompt": "install dependencies",
+                "completion": "pnpm install",
+                "notes": ["this project uses pnpm"],
+            }
+        ]
+        normalized, stats = finetune_data.normalize_source_rows(source, rows)
+        self.assertEqual(len(normalized), 1)
+        self.assertEqual(normalized[0]["notes"], ["this project uses pnpm"])
+
+        # Check mlx message conversion uses build_model_messages
+        mlx_msg = finetune_data.record_to_mlx_message(normalized[0])
+        messages = mlx_msg["messages"]
+        self.assertEqual(len(messages), 3)
+        self.assertEqual(messages[0]["role"], "system")
+        self.assertIn("this project uses pnpm", messages[0]["content"])
+        self.assertEqual(messages[1]["role"], "user")
+        self.assertEqual(messages[1]["content"], "install dependencies")
+        self.assertEqual(messages[2]["role"], "assistant")
+        self.assertEqual(messages[2]["content"], "pnpm install")
+
 
 
 if __name__ == "__main__":

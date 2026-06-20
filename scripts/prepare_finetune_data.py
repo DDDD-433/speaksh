@@ -15,7 +15,6 @@ from speaksh.safety import classify_risk
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "data" / "sources" / "public_datasets.json"
 DEFAULT_OUTPUT = ROOT / "data" / "processed" / "speaksh_public_v1"
-SYSTEM_PROMPT = "Translate the user request into exactly one safe Unix shell command. Return only the command."
 
 
 def load_source_config(path: Path) -> Dict[str, Any]:
@@ -84,6 +83,7 @@ def make_record(
     user_input: str,
     command: str,
     source_split: str,
+    notes: List[str] | None = None,
 ) -> Dict[str, Any]:
     cleaned_input = re.sub(r"\s+", " ", user_input).strip()
     cleaned_command = re.sub(r"\s+", " ", command).strip()
@@ -98,6 +98,7 @@ def make_record(
         "category": categorize_command(cleaned_command),
         "source_split": source_split,
         "split": "",
+        "notes": notes or [],
     }
 
 
@@ -148,6 +149,7 @@ def normalize_source_rows(
                 user_input=user_input,
                 command=command,
                 source_split=source_split,
+                notes=row.get("notes"),
             )
         )
     return records, {"seen": seen, "kept": len(records), "filtered": dict(filtered)}
@@ -188,13 +190,12 @@ def split_records(records: List[Dict[str, Any]], *, seed: int = 42) -> Dict[str,
 
 
 def record_to_mlx_message(record: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": record["input"]},
-            {"role": "assistant", "content": record["command"]},
-        ]
-    }
+    from speaksh.model import build_model_messages
+    from speaksh.types import Note
+    notes = [Note(timestamp="", cwd="", content=n) for n in record.get("notes", [])]
+    messages = build_model_messages(record["input"], notes)
+    messages.append({"role": "assistant", "content": record["command"]})
+    return {"messages": messages}
 
 
 def write_jsonl(path: Path, rows: Iterable[Dict[str, Any]]) -> str:
