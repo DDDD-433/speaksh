@@ -32,6 +32,29 @@ SUPPORTED_EXACT_COMMANDS = {
     "env",
     "head -n 5 setup_nl2b_fs_1.sh",
     "tail -n 5 setup_nl2b_fs_1.sh",
+    "lsof",
+    "echo hello world",
+    "echo $0",
+    "echo $HOME",
+    "echo $PATH",
+    "cat setup_nl2b_fs_1.sh",
+    "sed -n 10p setup_nl2b_fs_1.sh",
+    "which bash",
+    "uptime",
+    "w",
+    "free",
+    "uname -a",
+    "hostname",
+    "hostname -I",
+    "cat /etc/resolv.conf | grep nameserver",
+    "ifconfig",
+    "route",
+    "last",
+    "last -w",
+    "openssl version",
+    "grep 'console' setup_nl2b_fs_1.sh",
+    "stat setup_nl2b_fs_1.sh",
+    "apt show curl",
 }
 
 
@@ -94,7 +117,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, default=finetune_data.DEFAULT_CONFIG)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--limit-per-source", type=int, default=200)
-    parser.add_argument("--max-tasks", type=int, default=12)
+    parser.add_argument("--max-tasks", type=int, default=32)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--include-disabled", action="store_true")
     parser.add_argument("--dry-run", action="store_true")

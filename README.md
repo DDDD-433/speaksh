@@ -282,7 +282,7 @@ Current exact-match baselines are tracked in `eval/RESULTS.md`.
 Regenerate the public-data eval slice:
 
 ```bash
-python scripts/prepare_external_eval.py --limit-per-source 200 --max-tasks 12
+python scripts/prepare_external_eval.py --limit-per-source 200 --max-tasks 32
 ```
 
 This uses the public dataset source config, keeps low-risk supported commands

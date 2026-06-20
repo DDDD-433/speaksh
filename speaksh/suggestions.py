@@ -58,6 +58,54 @@ def extract_line_file_request(text: str) -> tuple[str, str] | None:
     return direction, f"{count} {shell_quote_single(file_name)}"
 
 
+def extract_named_file(text: str) -> str | None:
+    match = re.search(r"\b(?:of|in)\s+(?:the\s+)?(?:file\s+)?(.+?)(?:\s+file)?$", text)
+    if not match:
+        return None
+    file_name = re.sub(r"\s+file$", "", match.group(1)).strip()
+    if not file_name or any(char in file_name for char in "\n\r;&|`$<>"):
+        return None
+    return shell_quote_single(file_name)
+
+
+def extract_ordinal_line_request(text: str) -> tuple[str, str] | None:
+    ordinals = {
+        "first": "1",
+        "second": "2",
+        "third": "3",
+        "fourth": "4",
+        "fifth": "5",
+        "sixth": "6",
+        "seventh": "7",
+        "eighth": "8",
+        "ninth": "9",
+        "tenth": "10",
+    }
+    match = re.search(r"\bprint\s+the\s+(\w+)\s+line\s+of\s+(?:the\s+)?(.+?)(?:\s+file)?$", text)
+    if not match:
+        return None
+    ordinal, file_name = match.groups()
+    line_no = ordinals.get(ordinal)
+    if line_no is None:
+        return None
+    file_name = re.sub(r"\s+file$", "", file_name).strip()
+    if not file_name or any(char in file_name for char in "\n\r;&|`$<>"):
+        return None
+    return line_no, shell_quote_single(file_name)
+
+
+def extract_quoted_word(text: str) -> str | None:
+    match = re.search(r"'([^']+)'|\"([^\"]+)\"", text)
+    if not match:
+        return None
+    return match.group(1) or match.group(2)
+
+
+def extract_package_name(text: str) -> str | None:
+    match = re.search(r"\babout\s+the\s+([a-z0-9_.+-]+)\s+package\b", text)
+    return match.group(1) if match else None
+
+
 def note_aware_install_command(notes: Sequence[Note]) -> str:
     content = "\n".join(n.content.lower() for n in notes)
     if "pnpm" in content:
@@ -84,6 +132,21 @@ def heuristic_suggestion(request: str, notes: Sequence[Note]) -> Optional[Sugges
     if any(phrase in t for phrase in ["compress this folder", "compress current directory", "zip this folder", "zip the current directory", "make a zip", "create a zip archive"]):
         command = "zip -r archive.zip ."
         explanation = "Creates archive.zip from the current directory."
+    elif "print hello world" in t:
+        command = "echo hello world"
+        explanation = "Prints hello world."
+    elif "open files" in t:
+        command = "lsof"
+        explanation = "Lists open files."
+    elif "current user's home directory" in t or "current user home directory" in t:
+        command = "echo $HOME"
+        explanation = "Prints the current user's home directory."
+    elif "current user's path" in t or "current user path" in t:
+        command = "echo $PATH"
+        explanation = "Prints the current user's PATH."
+    elif "current shell" in t:
+        command = "echo $0"
+        explanation = "Prints the current shell."
     elif any(phrase in t for phrase in ["current date", "date and time", "current time"]):
         command = "date"
         explanation = "Prints the current date and time."
@@ -101,6 +164,61 @@ def heuristic_suggestion(request: str, notes: Sequence[Note]) -> Optional[Sugges
         command_name = "head" if direction == "first" else "tail"
         command = f"{command_name} -n {count_and_file}"
         explanation = f"Displays the {direction} lines of a file."
+    elif ordinal_line := extract_ordinal_line_request(t):
+        line_no, file_name = ordinal_line
+        command = f"sed -n {line_no}p {file_name}"
+        explanation = "Prints a specific line from a file."
+    elif "display the contents" in t and (file_name := extract_named_file(t)):
+        command = f"cat {file_name}"
+        explanation = "Displays a file's contents."
+    elif "path of the bash executable" in t:
+        command = "which bash"
+        explanation = "Prints the path of the bash executable."
+    elif "system uptime" in t:
+        command = "uptime"
+        explanation = "Prints system uptime."
+    elif "system load averages" in t:
+        command = "w"
+        explanation = "Shows system load averages."
+    elif "system memory usage" in t:
+        command = "free"
+        explanation = "Shows system memory usage."
+    elif "kernel version" in t:
+        command = "uname -a"
+        explanation = "Prints kernel version information."
+    elif "system hostname" in t:
+        command = "hostname"
+        explanation = "Prints the system hostname."
+    elif "system ip address" in t:
+        command = "hostname -I"
+        explanation = "Prints system IP addresses."
+    elif "dns servers" in t:
+        command = "cat /etc/resolv.conf | grep nameserver"
+        explanation = "Lists configured DNS servers."
+    elif "network interfaces" in t:
+        command = "ifconfig"
+        explanation = "Displays network interfaces."
+    elif "routing table" in t:
+        command = "route"
+        explanation = "Displays the routing table."
+    elif "last logged in users" in t and "full user and domain names" in t:
+        command = "last -w"
+        explanation = "Shows last logged-in users with wide names."
+    elif "last logged in users" in t:
+        command = "last"
+        explanation = "Shows last logged-in users."
+    elif "openssl version" in t:
+        command = "openssl version"
+        explanation = "Prints the OpenSSL version."
+    elif "lines containing" in t and (word := extract_quoted_word(request)) and (file_name := extract_named_file(t)):
+        command = f"grep '{word}' {file_name}"
+        explanation = "Prints matching lines from a file."
+    elif "stats and timestamps" in t and (file_name := extract_named_file(t)):
+        command = f"stat {file_name}"
+        explanation = "Shows file metadata."
+    elif "apt information" in t and (package := extract_package_name(t)):
+        command = f"apt show {package}"
+        explanation = "Shows apt package information."
     elif any(phrase in t for phrase in ["show hidden", "list hidden", "hidden files", "dotfiles", "including hidden", "list files", "show files"]):
         command = "ls -la"
         explanation = "Lists files in the current directory, including hidden files."

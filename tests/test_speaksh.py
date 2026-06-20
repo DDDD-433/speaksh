@@ -277,9 +277,32 @@ class SpeakshCLITests(unittest.TestCase):
         cases = [
             ("print the current date and time", "date"),
             ("print the current user", "whoami"),
+            ("print hello world", "echo hello world"),
+            ("list open files", "lsof"),
+            ("print the current shell", "echo $0"),
+            ("print the current user's home directory", "echo $HOME"),
+            ("print the current user's path", "echo $PATH"),
             ("print environment variables", "env"),
+            ("display the contents of the setup_nl2b_fs_1.sh file", "cat setup_nl2b_fs_1.sh"),
             ("display the first 5 lines of the setup_nl2b_fs_1.sh file", "head -n 5 setup_nl2b_fs_1.sh"),
             ("display the last 5 lines of the setup_nl2b_fs_1.sh file", "tail -n 5 setup_nl2b_fs_1.sh"),
+            ("print the tenth line of the setup_nl2b_fs_1.sh", "sed -n 10p setup_nl2b_fs_1.sh"),
+            ("print the path of the bash executable", "which bash"),
+            ("print the system uptime", "uptime"),
+            ("print the system load averages", "w"),
+            ("print the system memory usage", "free"),
+            ("print the kernel version", "uname -a"),
+            ("print the system hostname", "hostname"),
+            ("print the system IP address", "hostname -I"),
+            ("print the ip addresses of the system DNS servers", "cat /etc/resolv.conf | grep nameserver"),
+            ("display the network interfaces", "ifconfig"),
+            ("display the routing table", "route"),
+            ("show the last logged in users", "last"),
+            ("print the last logged in users and show the full user and domain names", "last -w"),
+            ("print the openssl version", "openssl version"),
+            ("print lines containing 'console' in the file setup_nl2b_fs_1.sh", "grep 'console' setup_nl2b_fs_1.sh"),
+            ("list the stats and timestamps of the file setup_nl2b_fs_1.sh", "stat setup_nl2b_fs_1.sh"),
+            ("show apt information about the curl package", "apt show curl"),
         ]
 
         with tempfile.TemporaryDirectory() as td:
@@ -722,6 +745,45 @@ class ExternalEvalDataTests(unittest.TestCase):
 
         self.assertEqual([task["input"] for task in tasks], ["print the current working directory"])
         self.assertEqual(tasks[0]["expected_command"], "pwd")
+
+    def test_external_eval_supports_read_only_public_command_families(self):
+        commands = [
+            "lsof",
+            "echo hello world",
+            "echo $0",
+            "echo $HOME",
+            "echo $PATH",
+            "cat setup_nl2b_fs_1.sh",
+            "sed -n 10p setup_nl2b_fs_1.sh",
+            "which bash",
+            "uptime",
+            "w",
+            "free",
+            "uname -a",
+            "hostname",
+            "hostname -I",
+            "cat /etc/resolv.conf | grep nameserver",
+            "ifconfig",
+            "route",
+            "last",
+            "last -w",
+            "openssl version",
+            "grep 'console' setup_nl2b_fs_1.sh",
+            "stat setup_nl2b_fs_1.sh",
+            "apt show curl",
+        ]
+
+        for command in commands:
+            with self.subTest(command=command):
+                record = finetune_data.make_record(
+                    source_id="westenfelder/NL2SH-ALFA",
+                    license_name="MIT",
+                    user_input=f"request for {command}",
+                    command=command,
+                    source_split="external_test",
+                )
+                task = external_eval.record_to_eval_task(record)
+                self.assertEqual(task["expected_command"], command)
 
     def test_write_external_eval_tasks_is_deterministic_jsonl(self):
         records = [
