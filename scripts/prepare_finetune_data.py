@@ -27,6 +27,9 @@ def load_source_config(path: Path) -> Dict[str, Any]:
                 raise ValueError(f"source entry missing {key}: {source}")
         if source["license"] not in {"MIT", "Apache-2.0"}:
             raise ValueError(f"unsupported license for {source['id']}: {source['license']}")
+        train_repeat = int(source.get("train_repeat", 1))
+        if train_repeat < 1:
+            raise ValueError(f"train_repeat must be >= 1 for {source['id']}")
     return config
 
 
@@ -174,19 +177,37 @@ def dedupe_and_cap(records: Iterable[Dict[str, Any]], *, max_per_utility: int = 
 
 def split_records(records: List[Dict[str, Any]], *, seed: int = 42) -> Dict[str, List[Dict[str, Any]]]:
     external = [dict(record, split="external_test") for record in records if record.get("source_split") == "external_test"]
-    eligible = [record for record in records if record.get("source_split") != "external_test"]
+    fixed_train = [dict(record, split="train") for record in records if record.get("source_split") == "train_only"]
+    eligible = [
+        record
+        for record in records
+        if record.get("source_split") not in {"external_test", "train_only"}
+    ]
     shuffled = [dict(record) for record in eligible]
     random.Random(seed).shuffle(shuffled)
     total = len(shuffled)
     if total == 0:
-        return {"train": [], "valid": [], "test": [], "external_test": external}
+        return {"train": fixed_train, "valid": [], "test": [], "external_test": external}
     valid_count = max(1, round(total * 0.05)) if total >= 3 else 0
     test_count = max(1, round(total * 0.05)) if total >= 3 else 0
     train_count = max(0, total - valid_count - test_count)
-    train = [dict(record, split="train") for record in shuffled[:train_count]]
+    train = fixed_train + [dict(record, split="train") for record in shuffled[:train_count]]
     valid = [dict(record, split="valid") for record in shuffled[train_count : train_count + valid_count]]
     test = [dict(record, split="test") for record in shuffled[train_count + valid_count :]]
     return {"train": train, "valid": valid, "test": test, "external_test": external}
+
+
+def apply_train_repeats(
+    split_records_map: Dict[str, List[Dict[str, Any]]],
+    repeat_by_source: Dict[str, int],
+) -> Dict[str, List[Dict[str, Any]]]:
+    repeated_train: List[Dict[str, Any]] = []
+    for record in split_records_map.get("train", []):
+        repeat = repeat_by_source.get(record["source"], 1)
+        repeated_train.append(record)
+        for repeat_index in range(2, repeat + 1):
+            repeated_train.append({**record, "id": f"{record['id']}:r{repeat_index}"})
+    return {**split_records_map, "train": repeated_train}
 
 
 def record_to_mlx_message(record: Dict[str, Any]) -> Dict[str, Any]:
@@ -312,15 +333,20 @@ def prepare_dataset(args: argparse.Namespace) -> Tuple[Dict[str, List[Dict[str, 
     config = load_source_config(Path(args.config))
     all_records: List[Dict[str, Any]] = []
     source_stats: Dict[str, Dict[str, Any]] = {}
+    repeat_by_source: Dict[str, int] = {}
     enabled_sources = [
         source
         for source in config["sources"]
         if source.get("enabled") or getattr(args, "include_disabled", False)
     ]
     for source in enabled_sources:
+        train_repeat = int(source.get("train_repeat", 1))
+        repeat_by_source[source["id"]] = train_repeat
         rows = load_rows_for_source(source, limit=args.limit_per_source)
         records, stats = normalize_source_rows(source, rows, source_split=source.get("destination", "train"))
         source_stats[source["id"]] = merge_stats(source_stats.get(source["id"], {}), stats)
+        if train_repeat > 1:
+            source_stats[source["id"]]["train_repeat"] = train_repeat
         all_records.extend(records)
         for extra_load in source.get("extra_loads", []):
             extra_source = {**source, **extra_load}
@@ -335,6 +361,7 @@ def prepare_dataset(args: argparse.Namespace) -> Tuple[Dict[str, List[Dict[str, 
 
     deduped = dedupe_and_cap(all_records, max_per_utility=config.get("max_per_utility", 750))
     grouped = split_records(deduped, seed=args.seed)
+    grouped = apply_train_repeats(grouped, repeat_by_source)
     return grouped, source_stats
 
 

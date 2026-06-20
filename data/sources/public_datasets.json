@@ -45,7 +45,8 @@
       "adapter": "prompt_completion",
       "input_field": "prompt",
       "command_field": "completion",
-      "destination": "train",
+      "destination": "train_only",
+      "train_repeat": 120,
       "notes": "Task-targeted curated training set focusing on note-aware package managers, size queries, ports, processes, and compression.",
       "fixture_rows": [
         {"prompt": "install dependencies", "notes": ["this project uses pnpm"], "completion": "pnpm install"},

@@ -240,6 +240,27 @@ class SpeakshCLITests(unittest.TestCase):
         self.assertIn("find . -type f -iname '*.pdf'", system_prompt)
         self.assertIn("show current directory -> pwd", system_prompt)
 
+    def test_model_command_canonicalizer_cleans_common_near_misses(self):
+        cases = [
+            ("list files", "ls", [], "ls -la"),
+            ("where am i", "whoami", [], "pwd"),
+            ("show free disk space", "du -ah /", [], "df -h"),
+            ("find png files", "find . -name '*.png'", [], "find . -type f -iname '*.png'"),
+            ("find files larger than 1gb", "find . -type f -size +1G", [], "find . -type f -size +1G -exec ls -lh {} \\;"),
+            ("compress this folder", "zip -r archive.zip", [], "zip -r archive.zip ."),
+            ("install dependencies", "pnpm install", [], "npm install"),
+            (
+                "install dependencies",
+                "npm install",
+                [speaksh.Note(timestamp="", cwd="", content="this project uses bun")],
+                "bun install",
+            ),
+        ]
+
+        for request, command, notes, expected in cases:
+            with self.subTest(request=request, command=command):
+                self.assertEqual(model_module.canonicalize_model_command(request, command, notes), expected)
+
     def test_eval_tasks_jsonl_parses_with_required_fields(self):
         tasks_path = ROOT / "eval" / "tasks.jsonl"
         lines = [line for line in tasks_path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -508,6 +529,68 @@ class FineTuneDataTests(unittest.TestCase):
 
             self.assertEqual([record["command"] for record in splits["external_test"]], ["pwd"])
             self.assertEqual(splits["external_test"][0]["split"], "external_test")
+
+    def test_prepare_dataset_keeps_train_only_rows_in_train_and_repeats_them(self):
+        with tempfile.TemporaryDirectory() as td:
+            config_path = Path(td) / "sources.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "preset": "fixture",
+                        "sources": [
+                            {
+                                "id": "fixture/public",
+                                "enabled": True,
+                                "license": "MIT",
+                                "adapter": "prompt_completion",
+                                "input_field": "prompt",
+                                "command_field": "completion",
+                                "fixture_rows": [
+                                    {"prompt": f"request {idx}", "completion": f"echo {idx}"}
+                                    for idx in range(20)
+                                ],
+                            },
+                            {
+                                "id": "fixture/targeted",
+                                "enabled": True,
+                                "license": "MIT",
+                                "adapter": "prompt_completion",
+                                "input_field": "prompt",
+                                "command_field": "completion",
+                                "destination": "train_only",
+                                "train_repeat": 3,
+                                "fixture_rows": [
+                                    {"prompt": "install dependencies", "completion": "pnpm install"},
+                                    {"prompt": "show process on port 3000", "completion": "lsof -i :3000"},
+                                ],
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            splits, stats = finetune_data.prepare_dataset(
+                argparse.Namespace(
+                    config=config_path,
+                    limit_per_source=None,
+                    seed=42,
+                    include_disabled=False,
+                )
+            )
+
+            targeted_train = [record for record in splits["train"] if record["source"] == "fixture/targeted"]
+            targeted_holdout = [
+                record
+                for split_name in ("valid", "test", "external_test")
+                for record in splits[split_name]
+                if record["source"] == "fixture/targeted"
+            ]
+
+            self.assertEqual(len(targeted_train), 6)
+            self.assertEqual(targeted_holdout, [])
+            self.assertEqual(stats["fixture/targeted"]["train_repeat"], 3)
+            self.assertTrue(any(record["id"].endswith(":r2") for record in targeted_train))
 
     def test_normalize_records_preserves_notes(self):
         source = {

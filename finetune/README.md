@@ -128,3 +128,50 @@ data pipeline now includes a small task-targeted source for note-aware package
 manager selection, size queries, port/process lookups, and compression commands;
 the next adapter run should regenerate the data and train against that updated
 mix.
+
+## Weighted task-targeted run
+
+The task-targeted source can be kept in training and repeated with:
+
+```json
+{
+  "destination": "train_only",
+  "train_repeat": 120
+}
+```
+
+Regenerate data after prompt or source-config changes:
+
+```bash
+python scripts/prepare_finetune_data.py \
+  --preset public-curated-v1
+```
+
+The best local run so far used prompt-matched generated JSONL:
+
+```bash
+mlx_lm.lora \
+  --model mlx-community/MiniCPM5-1B-OptiQ-4bit \
+  --train \
+  --data data/processed/speaksh_public_v1/mlx \
+  --adapter-path adapters/speaksh-weighted-prompt-v1-200 \
+  --iters 200 \
+  --batch-size 2 \
+  --learning-rate 2e-5 \
+  --max-seq-length 512 \
+  --steps-per-report 20 \
+  --steps-per-eval 50 \
+  --val-batches 25 \
+  --save-every 100 \
+  --seed 42
+```
+
+Observed result:
+
+```text
+final val loss: 0.279
+test loss: 0.241
+test ppl: 1.273
+eval/tasks.jsonl: 37/37 with model-output canonicalization
+raw adapter score before canonicalization: 30/37
+```

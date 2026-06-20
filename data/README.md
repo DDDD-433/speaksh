@@ -21,7 +21,10 @@ than the first speaksh fine-tuning target.
 
 The local curated rows cover note-aware package manager selection, size
 queries, port/process lookups, and compression commands. Rows may include
-project notes so the MLX-LM training messages match the CLI prompt shape.
+project notes so the MLX-LM training messages match the CLI prompt shape. The
+curated source is marked `train_only` and uses `train_repeat` so the small local
+set is visible during short LoRA runs without mixing those rows into validation
+or test splits.
 
 Generate local MLX-LM training files:
 

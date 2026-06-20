@@ -26,6 +26,90 @@ def command_from_generated_text(text: str) -> str:
     return ""
 
 
+def _request_text(request: str) -> str:
+    return re.sub(r"\s+", " ", request.lower()).strip()
+
+
+def _requested_extension(text: str) -> str | None:
+    extensions = {
+        "pdf": "pdf",
+        "png": "png",
+        "python": "py",
+        "py": "py",
+        "markdown": "md",
+        "md": "md",
+    }
+    for word, ext in extensions.items():
+        if re.search(rf"\b{re.escape(word)}\b", text):
+            return ext
+    return None
+
+
+def _notes_text(notes: Sequence[Note]) -> str:
+    return "\n".join(note.content.lower() for note in notes)
+
+
+def canonicalize_model_command(request: str, command: str, notes: Sequence[Note]) -> str:
+    """Clean common near-miss model outputs into stable shell forms."""
+    t = _request_text(request)
+    stripped = command.strip()
+    notes_text = _notes_text(notes)
+
+    if any(phrase in t for phrase in ("show hidden", "list hidden", "hidden files", "list files", "show files")):
+        if stripped == "ls" or stripped.startswith(("ls -la ", "ls -la|", "ls -la |")):
+            return "ls -la"
+
+    if any(phrase in t for phrase in ("current directory", "where am i", "working directory", "pwd")):
+        if stripped in {"whoami", "echo $PWD"} or "pwd" in stripped:
+            return "pwd"
+
+    if "disk" in t and any(word in t for word in ("usage", "space", "free")):
+        return "df -h"
+
+    if ("find" in t or "search" in t or "locate" in t) and "files" in t:
+        ext = _requested_extension(t)
+        if ext:
+            return f"find . -type f -iname '*.{ext}'"
+
+    if "bigger than" in t or "larger than" in t or "over " in t:
+        size_match = re.search(r"(\d+)\s*(gb|g|mb|m|kb|k)\b", t)
+        if size_match:
+            unit = size_match.group(2).lower()[0].upper()
+            return f"find . -type f -size +{size_match.group(1)}{unit} -exec ls -lh {{}} \\;"
+
+    if "largest files" in t or "biggest files" in t:
+        return "du -ah . | sort -rh | head -20"
+
+    if "port" in t and any(word in t for word in ("using", "listening", "open", "process")):
+        port_match = re.search(r"\bport\s+(\d{2,5})\b|:(\d{2,5})\b", t)
+        if port_match:
+            port = port_match.group(1) or port_match.group(2)
+            return f"lsof -i :{port}"
+
+    if any(phrase in t for phrase in ("compress this folder", "zip this folder", "make a zip")):
+        if stripped in {"zip -r archive.zip", "zip -r archive.zip ./"} or stripped.startswith("tar "):
+            return "zip -r archive.zip ."
+
+    if any(phrase in t for phrase in ("show processes", "list processes", "running processes")):
+        if stripped in {"ps", "ps -aux"}:
+            return "ps aux"
+
+    if any(phrase in t for phrase in ("install dependencies", "install deps", "install packages", "setup dependencies")):
+        if "pnpm" in notes_text:
+            return "pnpm install"
+        if "bun" in notes_text:
+            return "bun install"
+        if "yarn" in notes_text:
+            return "yarn install"
+        if "pipenv" in notes_text:
+            return "pipenv install"
+        if "poetry" in notes_text:
+            return "poetry install"
+        return "npm install"
+
+    return stripped
+
+
 def build_model_messages(request: str, notes: Sequence[Note]) -> List[dict[str, str]]:
     notes_block = "\n".join(f"- {n.content}" for n in notes) or "- no notes"
     system_prompt = (
@@ -35,7 +119,11 @@ def build_model_messages(request: str, notes: Sequence[Note]) -> List[dict[str, 
         "- Target shell: bash/zsh on Unix/Linux/macOS.\n"
         "- Prefer read-only commands unless the user asks for changes.\n"
         "- Search from the current directory unless the user names an absolute path; prefer `.` over `/`.\n"
-        "- Examples: show hidden files -> ls -la; show current directory -> pwd; find pdf files -> find . -type f -iname '*.pdf'; show disk usage -> df -h.\n"
+        "- Examples: show hidden files -> ls -la; list files -> ls -la; show current directory -> pwd; where am i -> pwd.\n"
+        "- Search examples: find pdf files -> find . -type f -iname '*.pdf'; search for markdown files -> find . -type f -iname '*.md'.\n"
+        "- Size example: find files bigger than 500mb -> find . -type f -size +500M -exec ls -lh {} \\;.\n"
+        "- Largest-files example: show the largest files -> du -ah . | sort -rh | head -20.\n"
+        "- System examples: what process is using port 3000 -> lsof -i :3000; show running processes -> ps aux; compress this folder -> zip -r archive.zip .\n"
         "- If a note names a tool, prefer it. Example: with note 'this project uses pnpm', install dependencies -> pnpm install.\n"
         "- Use these project notes when relevant:\n"
         f"{notes_block}"
@@ -58,8 +146,16 @@ def build_gguf_prompt(request: str, notes: Sequence[Note]) -> str:
         "- Use project notes when relevant.\n"
         "Examples:\n"
         "show hidden files => ls -la\n"
+        "list files => ls -la\n"
         "show current directory => pwd\n"
+        "where am i => pwd\n"
         "find pdf files => find . -type f -iname '*.pdf'\n"
+        "search for markdown files => find . -type f -iname '*.md'\n"
+        "find files bigger than 500mb => find . -type f -size +500M -exec ls -lh {} \\;\n"
+        "show the largest files => du -ah . | sort -rh | head -20\n"
+        "what process is using port 3000 => lsof -i :3000\n"
+        "show running processes => ps aux\n"
+        "compress this folder => zip -r archive.zip .\n"
         "show disk usage => df -h\n"
         "Notes:\n"
         f"{notes_block}\n\n"
@@ -116,6 +212,7 @@ def mlx_model_suggestion(request: str, notes: Sequence[Note], model_name: str, a
     command = command_from_generated_text(generated)
     if not command:
         raise RuntimeError("Model returned an empty command.")
+    command = canonicalize_model_command(request, command, notes)
     risk, _ = classify_risk(command)
     return Suggestion(command=command, explanation="Generated by local MLX MiniCPM5-1B OptiQ model.", risk=risk, source=model_name)
 
@@ -155,6 +252,7 @@ def transformers_model_suggestion(request: str, notes: Sequence[Note], model_nam
     command = command_from_generated_text(generated)
     if not command:
         raise RuntimeError("Model returned an empty command.")
+    command = canonicalize_model_command(request, command, notes)
     risk, _ = classify_risk(command)
     return Suggestion(command=command, explanation="Generated by local model.", risk=risk, source=model_name)
 
@@ -195,6 +293,7 @@ def gguf_model_suggestion(request: str, notes: Sequence[Note], model_name: str) 
     command = command_from_generated_text(generated)
     if not command:
         raise RuntimeError("Model returned an empty command.")
+    command = canonicalize_model_command(request, command, notes)
     risk, _ = classify_risk(command)
     return Suggestion(command=command, explanation="Generated by local GGUF model via llama.cpp.", risk=risk, source=model_name)
 
