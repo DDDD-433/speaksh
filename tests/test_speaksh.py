@@ -17,6 +17,7 @@ ROOT = PROJECT.parent
 import speaksh  # noqa: E402
 import speaksh.model as model_module  # noqa: E402
 from scripts import eval as eval_script  # noqa: E402
+from scripts import prepare_external_eval as external_eval  # noqa: E402
 from scripts import prepare_finetune_data as finetune_data  # noqa: E402
 
 
@@ -271,6 +272,23 @@ class SpeakshCLITests(unittest.TestCase):
         for request, command, notes, expected in cases:
             with self.subTest(request=request, command=command):
                 self.assertEqual(model_module.canonicalize_model_command(request, command, notes), expected)
+
+    def test_public_external_safe_examples_use_deterministic_rules(self):
+        cases = [
+            ("print the current date and time", "date"),
+            ("print the current user", "whoami"),
+            ("print environment variables", "env"),
+            ("display the first 5 lines of the setup_nl2b_fs_1.sh file", "head -n 5 setup_nl2b_fs_1.sh"),
+            ("display the last 5 lines of the setup_nl2b_fs_1.sh file", "tail -n 5 setup_nl2b_fs_1.sh"),
+        ]
+
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(os.environ, {"SPEAKSH_HOME": td}):
+                for request, expected in cases:
+                    with self.subTest(request=request):
+                        suggestion = speaksh.suggest_command(request, use_model=False)
+                        self.assertIsNotNone(suggestion)
+                        self.assertEqual(suggestion.command, expected)
 
     def test_eval_tasks_jsonl_parses_with_required_fields(self):
         task_paths = sorted((ROOT / "eval").glob("*tasks.jsonl"))
@@ -654,6 +672,80 @@ class FineTuneDataTests(unittest.TestCase):
         self.assertEqual(messages[2]["role"], "assistant")
         self.assertEqual(messages[2]["content"], "pnpm install")
 
+
+class ExternalEvalDataTests(unittest.TestCase):
+    def test_record_to_eval_task_keeps_public_provenance_and_variants(self):
+        record = finetune_data.make_record(
+            source_id="westenfelder/NL2SH-ALFA",
+            license_name="MIT",
+            user_input="list all files in the current directory including hidden files",
+            command="ls -a",
+            source_split="external_test",
+        )
+
+        task = external_eval.record_to_eval_task(record)
+
+        self.assertEqual(task["input"], record["input"])
+        self.assertEqual(task["expected_commands"], ["ls -a", "ls -la", "ls -al"])
+        self.assertEqual(task["risk"], "low")
+        self.assertEqual(task["mode"], "fallback")
+        self.assertEqual(task["category"], "external_filesystem")
+        self.assertEqual(task["source"], "westenfelder/NL2SH-ALFA")
+        self.assertEqual(task["license"], "MIT")
+
+    def test_build_external_eval_tasks_filters_unsafe_and_unsupported_rows(self):
+        records = [
+            finetune_data.make_record(
+                source_id="fixture/public",
+                license_name="MIT",
+                user_input="print the current working directory",
+                command="pwd",
+                source_split="external_test",
+            ),
+            finetune_data.make_record(
+                source_id="fixture/public",
+                license_name="MIT",
+                user_input="remove a file named does_not_exist.txt",
+                command="rm does_not_exist.txt",
+                source_split="external_test",
+            ),
+            finetune_data.make_record(
+                source_id="fixture/public",
+                license_name="MIT",
+                user_input="display the shell history",
+                command="history",
+                source_split="external_test",
+            ),
+        ]
+
+        tasks = external_eval.build_external_eval_tasks(records, limit=10)
+
+        self.assertEqual([task["input"] for task in tasks], ["print the current working directory"])
+        self.assertEqual(tasks[0]["expected_command"], "pwd")
+
+    def test_write_external_eval_tasks_is_deterministic_jsonl(self):
+        records = [
+            finetune_data.make_record(
+                source_id="fixture/public",
+                license_name="MIT",
+                user_input="print the current user",
+                command="whoami",
+                source_split="external_test",
+            )
+        ]
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "external.jsonl"
+            digest = external_eval.write_external_eval_tasks(path, records, limit=10)
+            first = path.read_text(encoding="utf-8")
+            second_digest = external_eval.write_external_eval_tasks(path, records, limit=10)
+            second = path.read_text(encoding="utf-8")
+
+        self.assertEqual(first, second)
+        self.assertEqual(digest, second_digest)
+        row = json.loads(first)
+        self.assertEqual(row["input"], "print the current user")
+        self.assertEqual(row["expected_command"], "whoami")
 
 
 if __name__ == "__main__":

@@ -54,6 +54,7 @@ Run the same checks used by CI:
 python -m unittest -v
 python scripts/eval.py --no-model
 python scripts/eval.py --no-model --tasks eval/heldout_tasks.jsonl
+python scripts/eval.py --no-model --tasks eval/external_public_tasks.jsonl
 ```
 
 ## Usage
@@ -230,7 +231,8 @@ model backend.
 
 Small local eval benchmarks check command quality for both the fallback rules
 and the model. The baseline suite lives in `eval/tasks.jsonl`; the broader
-paraphrase suite lives in `eval/heldout_tasks.jsonl`. Each line is either a
+paraphrase suite lives in `eval/heldout_tasks.jsonl`; the small public-data
+slice lives in `eval/external_public_tasks.jsonl`. Each line is either a
 `fallback` task or a `safety` task. Fallback tasks can use `expected_command`,
 `expected_commands`, or a regex `match` field, so known-good command variants
 can pass without weakening safety checks. Tasks may carry an optional
@@ -242,6 +244,7 @@ Run the fallback eval (no model loaded, fast, dependency-free):
 ```bash
 python scripts/eval.py --no-model
 python scripts/eval.py --no-model --tasks eval/heldout_tasks.jsonl
+python scripts/eval.py --no-model --tasks eval/external_public_tasks.jsonl
 ```
 
 Run the model-backed eval (requires `mlx-lm` and the cached model):
@@ -275,6 +278,15 @@ custom task file. Use `--strict-model` when model-backed evals should count
 model errors as failures instead of falling back to deterministic rules.
 
 Current exact-match baselines are tracked in `eval/RESULTS.md`.
+
+Regenerate the public-data eval slice:
+
+```bash
+python scripts/prepare_external_eval.py --limit-per-source 200 --max-tasks 12
+```
+
+This uses the public dataset source config, keeps low-risk supported commands
+only, and writes deterministic JSONL with source and license metadata.
 
 Note: scoring is exact string match against `expected_command`. That is the
 right bar for the deterministic fallback, but it is strict for model-backed

@@ -1,0 +1,10 @@
+{"category": "external_filesystem", "expected_commands": ["ls", "ls -la", "ls -al"], "input": "list files in the current directory", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_filesystem", "expected_commands": ["ls -a", "ls -la", "ls -al"], "input": "list all files in the current directory including hidden files", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_filesystem", "expected_command": "pwd", "input": "print the current working directory", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_other", "expected_command": "date", "input": "print the current date and time", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_other", "expected_command": "whoami", "input": "print the current user", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_other", "expected_command": "env", "input": "print environment variables", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_search", "expected_command": "head -n 5 setup_nl2b_fs_1.sh", "input": "display the first 5 lines of the setup_nl2b_fs_1.sh file", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_search", "expected_command": "tail -n 5 setup_nl2b_fs_1.sh", "input": "display the last 5 lines of the setup_nl2b_fs_1.sh file", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_process", "expected_commands": ["ps", "ps aux"], "input": "print running processes", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}
+{"category": "external_filesystem", "expected_commands": ["df", "df -h"], "input": "print the system disk usage", "license": "MIT", "mode": "fallback", "risk": "low", "source": "westenfelder/NL2SH-ALFA"}

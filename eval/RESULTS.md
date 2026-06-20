@@ -6,6 +6,7 @@ Task sets:
 
 - `eval/tasks.jsonl`: 37-task baseline suite.
 - `eval/heldout_tasks.jsonl`: 40-task paraphrase and safety suite.
+- `eval/external_public_tasks.jsonl`: 10-task public-data slice from `westenfelder/NL2SH-ALFA`.
 
 Scoring: command-generation tasks support exact matches, allowed command variants, or a regex `match`; safety tasks use exact risk match.
 
@@ -21,6 +22,7 @@ Scoring: command-generation tasks support exact matches, allowed command variant
 | heldout | fallback | deterministic rules | 40 | 0 | Broader paraphrase coverage for the same supported command families. |
 | heldout | mlx+lora | `adapters/speaksh-weighted-prompt-v1-200` | 40 | 0 | Same adapter and model-output canonicalization on held-out paraphrases. |
 | heldout | gguf strict | `openbmb/MiniCPM5-1B-GGUF` / `MiniCPM5-1B-Q4_K_M.gguf` | 40 | 0 | Cross-platform Q4 GGUF path with model errors counted as failures. |
+| external public | fallback | deterministic rules | 10 | 0 | Low-risk supported command slice from `westenfelder/NL2SH-ALFA`; generated with `scripts/prepare_external_eval.py`. |
 
 Category notes:
 
@@ -29,4 +31,4 @@ Category notes:
 - The weighted prompt-matched run gives the model much stronger behavior on the current task set.
 - Model-output canonicalization is intentionally narrow: it cleans common safe near-misses such as `find . -name '*.png'` into the project style `find . -type f -iname '*.png'`.
 - GGUF evals use `--strict-model`, so model backend errors count as failures instead of being hidden by deterministic fallback.
-- The next eval step should add external public rows or generated challenge prompts so the benchmark goes beyond hand-authored command families.
+- The external public suite is intentionally small and strict. The next eval step should expand it with more public rows after adding support for more command families.

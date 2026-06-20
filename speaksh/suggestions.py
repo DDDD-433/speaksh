@@ -47,6 +47,17 @@ def extract_size(text: str) -> str:
     return f"{num}{unit}"
 
 
+def extract_line_file_request(text: str) -> tuple[str, str] | None:
+    match = re.search(r"\b(first|last)\s+(\d+)\s+lines?\s+of\s+(?:the\s+)?(.+?)(?:\s+file)?$", text)
+    if not match:
+        return None
+    direction, count, file_name = match.groups()
+    file_name = re.sub(r"\s+file$", "", file_name).strip()
+    if not file_name or any(char in file_name for char in "\n\r;&|`$<>"):
+        return None
+    return direction, f"{count} {shell_quote_single(file_name)}"
+
+
 def note_aware_install_command(notes: Sequence[Note]) -> str:
     content = "\n".join(n.content.lower() for n in notes)
     if "pnpm" in content:
@@ -73,9 +84,23 @@ def heuristic_suggestion(request: str, notes: Sequence[Note]) -> Optional[Sugges
     if any(phrase in t for phrase in ["compress this folder", "compress current directory", "zip this folder", "zip the current directory", "make a zip", "create a zip archive"]):
         command = "zip -r archive.zip ."
         explanation = "Creates archive.zip from the current directory."
+    elif any(phrase in t for phrase in ["current date", "date and time", "current time"]):
+        command = "date"
+        explanation = "Prints the current date and time."
+    elif any(phrase in t for phrase in ["current user", "who am i", "whoami"]):
+        command = "whoami"
+        explanation = "Prints the current user."
+    elif any(phrase in t for phrase in ["environment variables", "print environment", "show environment"]):
+        command = "env"
+        explanation = "Prints environment variables."
     elif any(word in t for word in ["disk", "filesystem"]) and any(word in t for word in ["usage", "space", "free", "available"]):
         command = "df -h"
         explanation = "Shows disk space usage in human-readable units."
+    elif line_file := extract_line_file_request(t):
+        direction, count_and_file = line_file
+        command_name = "head" if direction == "first" else "tail"
+        command = f"{command_name} -n {count_and_file}"
+        explanation = f"Displays the {direction} lines of a file."
     elif any(phrase in t for phrase in ["show hidden", "list hidden", "hidden files", "dotfiles", "including hidden", "list files", "show files"]):
         command = "ls -la"
         explanation = "Lists files in the current directory, including hidden files."
