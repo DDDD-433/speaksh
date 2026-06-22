@@ -147,7 +147,7 @@ python scripts/prepare_finetune_data.py \
   --preset public-curated-v1
 ```
 
-The best local run so far used prompt-matched generated JSONL:
+The weighted prompt run used prompt-matched JSONL:
 
 ```bash
 mlx_lm.lora \

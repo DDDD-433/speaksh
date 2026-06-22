@@ -18,7 +18,7 @@
           "destination": "external_test"
         }
       ],
-      "notes": "Primary public NL-to-Bash dataset. Its manually verified test subset should be handled as external eval in a later adapter pass, not mixed into training."
+      "notes": "Primary public NL-to-Bash dataset. Its manually verified test subset is reserved for external evaluation, not mixed into training."
     },
     {
       "id": "emirkaanozdemr/bash_command_data_6K",

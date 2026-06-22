@@ -65,9 +65,9 @@ Test perplexity: 3.486
 speaksh task harness: 25/37
 ```
 
-The adapter substantially improves language-model loss on public NL-to-shell
-data. The small task harness improves only slightly over the base MLX model, so
-future work should use more task-targeted data and richer command evaluation.
+The adapter improves language-model loss on public NL-to-shell data. On the
+small task harness, gains over the base MLX model are limited; the weighted
+prompt adapter is the stronger published artifact.
 
 ## Usage
 

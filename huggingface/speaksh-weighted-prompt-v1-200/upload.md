@@ -1,6 +1,6 @@
 # Upload notes
 
-This directory contains the model card for publishing the best local adapter.
+This directory contains the model card for the published adapter.
 Do not commit adapter weights to GitHub.
 
 Local adapter files:
