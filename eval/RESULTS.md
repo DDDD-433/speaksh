@@ -1,6 +1,6 @@
 # speaksh Eval Results
 
-Date: 2026-06-20
+Date: 2026-06-22
 
 Task sets:
 
@@ -32,3 +32,4 @@ Category notes:
 - Model-output canonicalization is intentionally narrow: it cleans common safe near-misses such as `find . -name '*.png'` into the project style `find . -type f -iname '*.png'`.
 - GGUF evals use `--strict-model`, so model backend errors count as failures instead of being hidden by deterministic fallback.
 - The external public suite is intentionally strict and currently keeps read-only command families from public data.
+- Best adapter artifact: `https://huggingface.co/DDDDD-433/speaksh-weighted-prompt-v1-200`.

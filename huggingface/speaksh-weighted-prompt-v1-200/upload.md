@@ -17,28 +17,34 @@ SHA256:
 baf83ac44543fa1ddd8c7797077f40f1a5fd0fc9acecaab1f4e3e1503de06a35  adapter_config.json
 ```
 
-When Hugging Face auth is configured:
+Uploaded repository:
+
+```text
+https://huggingface.co/DDDDD-433/speaksh-weighted-prompt-v1-200
+```
+
+Upload commands:
 
 ```bash
 .venv/bin/hf auth login
 
-.venv/bin/hf repos create DDDD-433/speaksh-weighted-prompt-v1-200 \
+.venv/bin/hf repos create DDDDD-433/speaksh-weighted-prompt-v1-200 \
   --type model \
   --exist-ok
 
-.venv/bin/hf upload DDDD-433/speaksh-weighted-prompt-v1-200 \
+.venv/bin/hf upload DDDDD-433/speaksh-weighted-prompt-v1-200 \
   adapters/speaksh-weighted-prompt-v1-200/adapters.safetensors \
   adapters.safetensors \
   --type model \
   --commit-message "Upload speaksh weighted prompt adapter"
 
-.venv/bin/hf upload DDDD-433/speaksh-weighted-prompt-v1-200 \
+.venv/bin/hf upload DDDDD-433/speaksh-weighted-prompt-v1-200 \
   adapters/speaksh-weighted-prompt-v1-200/adapter_config.json \
   adapter_config.json \
   --type model \
   --commit-message "Add adapter config"
 
-.venv/bin/hf upload DDDD-433/speaksh-weighted-prompt-v1-200 \
+.venv/bin/hf upload DDDDD-433/speaksh-weighted-prompt-v1-200 \
   huggingface/speaksh-weighted-prompt-v1-200/README.md \
   README.md \
   --type model \
@@ -48,5 +54,13 @@ When Hugging Face auth is configured:
 After upload, verify:
 
 ```bash
-.venv/bin/hf models info DDDD-433/speaksh-weighted-prompt-v1-200
+.venv/bin/hf models info DDDDD-433/speaksh-weighted-prompt-v1-200
+```
+
+Verified uploaded files:
+
+```text
+README.md
+adapter_config.json
+adapters.safetensors
 ```

@@ -17,6 +17,12 @@ By default, `speaksh` tries to use the MLX OptiQ quant of MiniCPM5-1B:
 mlx-community/MiniCPM5-1B-OptiQ-4bit
 ```
 
+The best local LoRA adapter is published on Hugging Face:
+
+```text
+https://huggingface.co/DDDDD-433/speaksh-weighted-prompt-v1-200
+```
+
 If MLX or the model is unavailable, it falls back to built-in rules so the CLI
 still works. Use `--no-model` when you explicitly want deterministic fallback
 mode.
@@ -198,6 +204,12 @@ Run with a local MLX LoRA adapter:
 speaksh --adapter-path adapters/smoke-5b --dry-run "find pdf files"
 ```
 
+Best published adapter:
+
+```text
+DDDDD-433/speaksh-weighted-prompt-v1-200
+```
+
 `--adapter-path` is supported only with the MLX backend. Adapter directories
 are local artifacts and are ignored by git.
 
@@ -294,6 +306,15 @@ custom task file. Use `--strict-model` when model-backed evals should count
 model errors as failures instead of falling back to deterministic rules.
 
 Current exact-match baselines are tracked in `eval/RESULTS.md`.
+
+Current checked results:
+
+```text
+unit tests: 46/46
+baseline eval: 37/37
+heldout eval: 40/40
+external public eval: 32/32
+```
 
 Regenerate the public-data eval slice:
 
